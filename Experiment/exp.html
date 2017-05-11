@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+    <!-- Meta tags -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Francisco QV and Eric Schulz">
+    <meta charset="utf-8">
+
+    <!-- Libraries -->
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
+    <script src='https://cdn.firebase.com/js/client/1.1.1/firebase.js'></script>
+    <script src="js/lalolib.js"></script>
+    <script src="js/d3.min.js"></script>
+    <script src="js/numeric-1.2.6.js" charset="utf-8"></script>
+    <link href="https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!-- vis library -->
+    <script src="js/vis/vis417.min.js"></script>
+    <link rel="stylesheet" href="js/vis/vis.min.css">
+
+    <title>Experiment</title>
+  </head>
+
+  <body>
+
+    <!-- Title -->
+    <div class="container">
+      <div class="row">
+        <h1>Predictions</h1>
+      </div>
+    </div>
+
+
+    <!-- PAGE 1 -->
+    <div class="container" id="page1">
+
+      <div class="row">
+        <h3>Information</h3>
+        <div class="col-md-6">
+          <p>
+              This study is part of a research project conducted by
+              Francisco Quiroga Vergara, at University College London.
+              It investigates how people learn and predict
+              functions.<br />
+              If you have any questions, please contact
+              <u>francisco.quiroga-vergara.16 ( at ) ucl.ac.uk</u>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="container" id="page2" style="display:none">
+
+      <div class="row">
+        <h3 id="instructions_title">Instructions</h3>
+
+        <div class="col-md-6" id="instructions">
+          <div class="alert alert-warning" role="alert">
+            <strong>Please read the instructions carefully
+            and try to perform as well as you can.</strong>
+          </div>
+
+          <ol>
+            <li>
+              Below you will see a plot. Your goal is to draw a graph on this plot.
+            </li>
+            <li id="second_section_instruction" style="display:none">
+              <strong>There is real data for the first year only. You have to predict the data for the subsequent years.</strong>
+            </li>
+            <li>
+              To draw the graph, just click on the plot to place a point.
+            </li>
+            <li>
+              To remove the point, click on it.
+            </li>
+            <li>
+              Lines are drawn by placing dots on the screen which then will be
+              automatically connected. You can place as many dots as you want.
+            </li>
+            <li>
+              The first dot has to be placed at the leftmost side, the last dot
+              at the rightmost side.
+            </li>
+            <li>
+              Press 'Continue' when you are done.
+            </li>
+          </ol>
+        </div>
+
+      </div> <!-- row end -->
+
+      <div class="row">
+        <div class="col-md-6">
+          <button type="button" name="button" class="btn btn-default"
+                  onclick="toggleInstructions()">
+            Show/hide instructions
+          </button>
+        </div>
+      </div>
+
+      <br />
+
+    </div> <!-- page2 end -->
+
+    <div class="container" id="canvasPage" style="display:none">
+      <div class="row">
+        <h3>Canvas</h3>
+        <div >
+          <p>
+            <span id="specificInstructions"></span><br />
+            - Place at least one point on the <strong>first</strong> month.
+            <span class="glyphicon glyphicon-ok" aria-hidden="true" id='firstMonth' style='display: none'></span><br />
+
+            - Place at least one point on the <strong>last</strong> month.
+            <span class="glyphicon glyphicon-ok" aria-hidden="true" id='lastMonth' style='display: none'></span>
+
+          </p>
+        </div>
+
+
+        <!--<canvas id="canvas" width="600px" height="400px"></canvas>-->
+
+        <div id="graph"></div>
+
+      </div>
+    </div> <!-- canvasPage end -->
+
+    <!-- DEMOGRAPHICS PAGE -->
+    <div class="container" id="demographicsPage" style="display:none">
+      <form id="demographics">
+        <!-- Title -->
+        <div class="row">
+          <div class="col-md-6">
+            <h3>Your information</h3>
+            <p>Please fill with your personal data.</p>
+          </div>
+        </div>
+        <!-- Age -->
+        <div class="row">
+          <div class="col-lg-6">
+            <h4>Age</h4>
+            <div class="input-group input-group-lg">
+              <label class="radio-inline">
+                <input type="radio" name="age" value="18-25" />18-25
+              </label>
+              <label class="radio-inline">
+                <input type="radio" name="age" value="26-35" />26-35
+              </label>
+              <label class="radio-inline">
+                <input type="radio" name="age" value="36-45" />36-45
+              </label>
+              <label class="radio-inline">
+                <input type="radio" name="age" value="46-55" />46-55
+              </label>
+              <label class="radio-inline">
+                <input type="radio" name="age" value="56-65" />56-65
+              </label>
+              <label class="radio-inline">
+                <input type="radio" name="age" value="66+" />66+
+              </label>
+            </div>
+          </div>
+        </div>
+        <!-- Gender -->
+        <div class="row">
+          <div class="col-lg-6">
+            <h4>Gender</h4>
+            <div class="input-group input-group-lg">
+              <label class="radio-inline">
+                <input type="radio" name="gender" value="female" />Female
+              </label>
+              <label class="radio-inline">
+                <input type="radio" name="gender" value="male" />Male
+              </label>
+            </div><!-- /input-group -->
+          </div><!-- /.col-lg-6 -->
+        </div>
+      </form>
+    </div>
+    <!-- END demographicsPage -->
+
+    <!-- Thank You page -->
+    <div class="container" id="thankYouPage" style="display:none;">
+      <br />
+      <div class="row">
+        <div class="col-md-6">
+          <h1>Thank you</h1>
+          <p>If you would like to read the <strong>research paper</strong> that will be published
+            using the information gatheres in this experiment, please add your email to
+            <a target="_blank" href="http://eepurl.com/cOugvH">this newsletter</a>
+            (it will open on a new tab).</p>
+        </div>
+      </div>
+      <br />
+      <br />
+    </div>
+    <!-- END thankYouPage -->
+
+    <!-- CONTINUE BUTTON -->
+    <div class="container" id="continueButtonPage">
+      <br />
+      <div class="row">
+        <div class="col-md-6">
+          <button type="button" name="continue" class="btn btn-primary"
+                  onclick="nextPage();">
+            Continue
+          </button>
+        </div>
+      </div>
+      <br />
+      <br />
+    </div>
+    <!-- END continue button -->
+
+    <script src="js/source.js" charset="utf-8"></script>
+  </body>
+</html>
