@@ -2,11 +2,13 @@ var userId = Math.random();
 var pageIndex = 0;
 var pagesNames = [];
 
-var order1 = shuffle(['temperature', 'sales', 'partners'])
-var order2 = shuffle([1, 1, 1, 2, 2, 2, 3, 3, 3])
+var condition = shuffle(['temperature', 'sales', 'partners']);
+var subCondition = shuffle([1, 1, 1, 2, 2, 2, 3, 3, 3]);
 
-// Firebase
-//var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
+historicalData = [];
+
+// Firebase database
+var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
     //debug(5);
@@ -20,9 +22,6 @@ function hideShow(hideSelector, showSelector){
   // Hides the 'hideSelector' element(s) and shows (fades in) the 'showSelector' element(s)
   $(hideSelector).hide();
   $(showSelector).fadeIn();
-
-  // Scrolls the window to the top
-  //window.scrollTo(0,0);
 }
 
 // Canvas variables
@@ -31,15 +30,15 @@ var items = [];
 var newItem;
 
 function nextPage(){
-  pageIndex++;
-
-  if(pageIndex > 2 && pageIndex <= 8){
+  if(pageIndex > 1 && pageIndex < 8){
     // Destroy the previous graph
     graph.destroy();
 
-    // Save the items information. Firebase.
-    //saveData();
+    // Save the items information.
+    saveItems();
   }
+
+  pageIndex++;
 
   if(pageIndex == 1) {
     hideShow('#page1', '#page2');
@@ -74,14 +73,15 @@ function nextPage(){
   }
   // Thank you page
   else if (pageIndex == 9) {
-    // Save and send all the information
-    // TODO
+    // Save and send all the information to the server
+    sendData();
 
-
+    // Hide the demographics' page and the continue button
     $('#demographicsPage').hide()
     $('#continueButtonPage').hide()
     disableContinueButton();
 
+    // Show the final page
     $('#thankYouPage').fadeIn()
   }
 }
@@ -127,45 +127,61 @@ function showGraph(pageName) {
   return g;
 }
 
+// Saves the current items
+function saveItems() {
+  var now = $.now();
+
+  var pageData = {
+    'now': now,
+    'datetime': (new Date(now)).toString(),
+    'pageIndex': pageIndex,
+    'condition': getCurrentCondition(),
+    'subCondition': getCurrentPageSubcondition(),
+    'items': items
+  };
+
+  historicalData = historicalData.concat(pageData);
+}
+
 // Saves the current data on the database
-function saveData() {
+function sendData() {
   var now = $.now();
 
   database.push({
     'userId': getUserId(),
     'now': now,
     'datetime': (new Date(now)).toString(),
-    'pageIndex': pageIndex,
-    'getCurrentPageName': getCurrentPageName(),
-    'items': items
+    'gender': getGender().toString(),
+    'age': getAge().toString(),
+    'historicalData': historicalData
   });
 }
 
 function getYAxisRange() {
-  if (getCurrentPageName() == 'temperature') return {min:-11, max:41}
-  else if (getCurrentPageName() == 'sales') return {min:-100, max:5100}
+  if (getCurrentCondition() == 'temperature') return {min:-11, max:41}
+  else if (getCurrentCondition() == 'sales') return {min:-100, max:5100}
   else return {min:-0.5, max:10.5}
 }
 
 function getYAxisLabel() {
-  if (getCurrentPageName() == 'temperature') return 'Temperature (Celsius)'
-  else if (getCurrentPageName() == 'sales') return 'Sales (Units)'
+  if (getCurrentCondition() == 'temperature') return 'Temperature (Celsius)'
+  else if (getCurrentCondition() == 'sales') return 'Sales (Units)'
   else return 'Partners'
 }
 
 // Returns the initial values for the graphs of the first section of the experiment
 function getInitialValue() {
-  if (getCurrentPageName() == 'temperature') return 15;
-  else if (getCurrentPageName() == 'sales') return 2500;
+  if (getCurrentCondition() == 'temperature') return 15;
+  else if (getCurrentCondition() == 'sales') return 2500;
   else return 0;
 }
 
 // Returns the predictions for the first year of the current task
 function getFirstYearPrediction() {
-  if (getCurrentPageName() == 'temperature') {
+  if (getCurrentCondition() == 'temperature') {
     return getFirstYearTemperature();
   }
-  else if (getCurrentPageName() == 'sales') {
+  else if (getCurrentCondition() == 'sales') {
     return getFirstYearSales();
   }
   else {
@@ -188,39 +204,39 @@ function addDatesToFirstYearPredictions(values) {
 
 // Returns the values for the first year of temperatures
 function getFirstYearTemperature() {
-  if (getCurrentPageSubdivision() == 1) {
+  if (getCurrentPageSubcondition() == 1) {
     return addDatesToFirstYearPredictions([6, 10, 17, 20, 21, 14, 8]); //London
   }
-  else if (getCurrentPageSubdivision() == 2) {
+  else if (getCurrentPageSubcondition() == 2) {
     return addDatesToFirstYearPredictions([30, 27, 18, 15, 16, 22, 32]); //Santiago
   }
-  else if (getCurrentPageSubdivision() == 3) {
+  else if (getCurrentPageSubcondition() == 3) {
     return addDatesToFirstYearPredictions([3, 2, 5, 11, 13, 6, 5]); //Reijkavik
   }
 }
 
 // Returns the values for the first year of sales
 function getFirstYearSales() {
-  if (getCurrentPageSubdivision() == 1) {
+  if (getCurrentPageSubcondition() == 1) {
     return addDatesToFirstYearPredictions([2000, 2100, 2200, 2300, 2400, 2500, 2600]);
   }
-  else if (getCurrentPageSubdivision() == 2) {
+  else if (getCurrentPageSubcondition() == 2) {
     return addDatesToFirstYearPredictions([2000, 2100, 2000, 1950, 1900, 2000, 2000]);
   }
-  else if (getCurrentPageSubdivision() == 3) {
+  else if (getCurrentPageSubcondition() == 3) {
     return addDatesToFirstYearPredictions([2000, 1900, 1800, 1700, 1600, 1500, 1400]);
   }
 }
 
 // Returns the values for the first year of partners
 function getFirstYearPartners() {
-  if (getCurrentPageSubdivision() == 1) {
+  if (getCurrentPageSubcondition() == 1) {
     return addDatesToFirstYearPredictions([0, 0, 0, 0, 0, 0, 1]);
   }
-  else if (getCurrentPageSubdivision() == 2) {
+  else if (getCurrentPageSubcondition() == 2) {
     return addDatesToFirstYearPredictions([0, 0, 0, 1, 1, 2, 2]);
   }
-  else if (getCurrentPageSubdivision() == 3) {
+  else if (getCurrentPageSubcondition() == 3) {
     return addDatesToFirstYearPredictions([0, 1, 2, 2, 2, 3, 4]);
   }
 }
@@ -231,7 +247,6 @@ function getInitialItems() {
     return [{x: '0004-01-01', y: getInitialValue()}];
   }
   else if(getExperimentStage() == 2) {
-    console.log(getFirstYearPrediction());
     return getFirstYearPrediction();
   }
 }
@@ -253,23 +268,23 @@ function getExperimentStage() {
 
 function getSpecificInstructions() {
   if(pageIndex <= 4) {
-    if (getCurrentPageName() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city.'
-    else if (getCurrentPageName() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company.'
+    if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city.'
+    else if (getCurrentCondition() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company.'
     else return 'Please draw a graph showing the <strong>number of cummulative sexual partners</strong> that a 21 year old male will have in the future.'
   }
   else {
-    if (getCurrentPageName() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city, given the information for the first year.'
-    else if (getCurrentPageName() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company, given the information for the first year.'
+    if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city, given the information for the first year.'
+    else if (getCurrentCondition() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company, given the information for the first year.'
     else return 'Please draw a graph showing the <strong>number of cummulative sexual partners</strong> that a 21 year old male will have in the future, given the information for the first year.'
   }
 }
 
-function getCurrentPageName() {
-  return order1[(pageIndex - 2) % 3];
+function getCurrentCondition() {
+  return condition[(pageIndex - 2) % 3];
 }
 
-function getCurrentPageSubdivision() {
-  return order2[(pageIndex - 2) % 3];
+function getCurrentPageSubcondition() {
+  return subCondition[(pageIndex - 2) % 3];
 }
 
 function graphOnClick(params) {
@@ -301,13 +316,18 @@ function graphOnClick(params) {
   // In other case, it is added
   else {
     // If the experiment is on its second stage and the item is first year, the item shouldnt be added
-    if(!(getExperimentStage() == 2 && firstYear(newItem) )) {
+    if(!( getExperimentStage() == 2 && firstYear(newItem) ) && nonNegativeYear(newItem)) {
       items = items.concat(newItem)
     }
   }
 
   // Updates the items shown
   updateItems(items)
+}
+
+// Returns true if the year of the item is not "000-x"
+function nonNegativeYear(item) {
+  return item[0].x.split('-')[0] != '000';
 }
 
 // Returns true when the item is of the first year
@@ -409,8 +429,8 @@ function compareItems(item1, item2) {
 
   // The range of acceptance depends on the Y variable
   var range = 1;
-  if (getCurrentPageName() == 'temperature') range = 1
-  else if (getCurrentPageName() == 'sales') range = 100
+  if (getCurrentCondition() == 'temperature') range = 1
+  else if (getCurrentCondition() == 'sales') range = 100
   else range = 0.3
 
   equalY = Math.abs(item1.y - item2.y) <= range
@@ -443,6 +463,12 @@ function shuffle(array) {
 
   return array;
 }
+
+// From: http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-deep-clone-an-object-in-javascript
+function cloneObject(object) {
+  return jQuery.extend(true, {}, oldObject);
+}
+
 
 // Check the demographics data when the form changes.
 $('#demographics').change(function(){
