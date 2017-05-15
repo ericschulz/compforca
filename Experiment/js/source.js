@@ -14,7 +14,7 @@ historicalData = [];
 var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
-    //debug(5);
+    debug(6);
 });
 
 function toggleInstructions() {
@@ -109,7 +109,7 @@ function showGraph(pageName) {
 
     dataAxis: {
         left: {
-            range: getYAxisRange(),
+            range: getMinMax(getYAxisRange()),
             title: {text: getYAxisLabel()}
         },
 
@@ -161,12 +161,22 @@ function sendData() {
 }
 
 function getYAxisRange() {
-  if (getCurrentCondition() == 'temperature') return {min:-11, max:41};
-  else if (getCurrentCondition() == 'sales') return {min:-100, max:5100};
-  else if (getCurrentCondition() == 'facebook_friends') return {min:-0.5, max:10.5};
-  else if (getCurrentCondition() == 'rain') return {min:-5, max:100};
-  else if (getCurrentCondition() == 'gym_memberships') return {min:-5, max:100};
-  else if (getCurrentCondition() == 'wage') return {min:-10, max:3000};
+  if (getCurrentCondition() == 'temperature') return [-10, 40];
+  else if (getCurrentCondition() == 'sales') return [0, 5000];
+  else if (getCurrentCondition() == 'facebook_friends') return [0, 10];
+  else if (getCurrentCondition() == 'rain') return [0, 100];
+  else if (getCurrentCondition() == 'gym_memberships') return [0, 50];
+  else if (getCurrentCondition() == 'wage') return [0, 5000];
+}
+
+// range = [min, max]
+function getMinMax(range) {
+  var range_value = range[1] - range[0];
+
+  return {
+    min: range[0] - 0.03 * range_value,
+    max: range[1] + 0.03 * range_value
+  };
 }
 
 function getYAxisLabel() {
@@ -187,33 +197,11 @@ function getInitialValue() {
 
   else if (getCurrentCondition() == 'facebook_friends') return 5;
 
-  else if (getCurrentCondition() == 'rain') return 50;
+  else if (getCurrentCondition() == 'rain') return 30;
 
-  else if (getCurrentCondition() == 'gym_memberships') return 50;
+  else if (getCurrentCondition() == 'gym_memberships') return 30;
 
-  else if (getCurrentCondition() == 'wage') return 2000;
-}
-
-// Returns the predictions for the first year of the current task
-function getFirstYearPrediction() {
-  if (getCurrentCondition() == 'temperature') {
-    return getFirstYearTemperature();
-  }
-  else if (getCurrentCondition() == 'sales') {
-    return getFirstYearSales();
-  }
-  else if (getCurrentCondition() == 'facebook_friends') {
-    return getFirstYearFriends();
-  }
-  else if (getCurrentCondition() == 'rain') {
-    return getFirstYearRain();
-  }
-  else if (getCurrentCondition() == 'gym_memberships') {
-    return getFirstYearGymMemberships();
-  }
-  else if (getCurrentCondition() == 'wage') {
-    return getFirstYearWage();
-  }
+  else if (getCurrentCondition() == 'wage') return 2500;
 }
 
 // Converts the values into an items object by adding dates
@@ -229,82 +217,11 @@ function addDatesToFirstYearPredictions(values) {
   ];
 }
 
-// Returns the values for the first year of temperatures
-function getFirstYearTemperature() {
-  if (getCurrentPageSubcondition() == 1) {
-    return addDatesToFirstYearPredictions([6, 10, 17, 20, 21, 14, 8]); //London
-  }
-  else if (getCurrentPageSubcondition() == 2) {
-    return addDatesToFirstYearPredictions([30, 27, 18, 15, 16, 22, 32]); //Santiago
-  }
-  else if (getCurrentPageSubcondition() == 3) {
-    return addDatesToFirstYearPredictions([3, 2, 5, 11, 13, 6, 5]); //Reijkavik
-  }
-}
-
-// Returns the values for the first year of sales
-function getFirstYearSales() {
-  if (getCurrentPageSubcondition() == 1) {
-    return addDatesToFirstYearPredictions([2000, 2100, 2200, 2300, 2400, 2500, 2600]);
-  }
-  else if (getCurrentPageSubcondition() == 2) {
-    return addDatesToFirstYearPredictions([2000, 2100, 2000, 1950, 1900, 2000, 2000]);
-  }
-  else if (getCurrentPageSubcondition() == 3) {
-    return addDatesToFirstYearPredictions([2000, 1900, 1800, 1700, 1600, 1500, 1400]);
-  }
-}
-
-// Returns the values for the first year of Facebook friends
-function getFirstYearFriends() {
-  if (getCurrentPageSubcondition() == 1) {
-    return addDatesToFirstYearPredictions([0, 0, 0, 0, 0, 0, 1]);
-  }
-  else if (getCurrentPageSubcondition() == 2) {
-    return addDatesToFirstYearPredictions([0, 0, 0, 1, 1, 2, 2]);
-  }
-  else if (getCurrentPageSubcondition() == 3) {
-    return addDatesToFirstYearPredictions([0, 1, 2, 2, 2, 3, 4]);
-  }
-}
-
-//Returns the values for the first year of probability of a rainy day
-function getFirstYearRain() {
-  if (getCurrentPageSubcondition() == 1) {
-    return addDatesToFirstYearPredictions([55, 35, 42, 42, 43, 53, 55]); //London http://www.london.climatemps.com/precipitation.php
-  }
-  else if (getCurrentPageSubcondition() == 2) {
-    return addDatesToFirstYearPredictions([3, 3, 26, 32, 27, 10, 3]); //Santiago http://www.santiago.climatemps.com/precipitation.php
-  }
-  else if (getCurrentPageSubcondition() == 3) {
-    return addDatesToFirstYearPredictions([65, 58, 52, 48, 63, 60, 65]); //Reijkavik http://www.reykjavik.climatemps.com/precipitation.php
-  }
-}
-
-//Returns the values for the first year of gym memberships
-function getFirstYearGymMemberships() {
-  if (getCurrentPageSubcondition() == 1) {
-    return addDatesToFirstYearPredictions([20, 21, 22, 23, 24, 25, 26]);
-  }
-  else if (getCurrentPageSubcondition() == 2) {
-    return addDatesToFirstYearPredictions([20, 21, 20, 19, 19, 20, 20]);
-  }
-  else if (getCurrentPageSubcondition() == 3) {
-    return addDatesToFirstYearPredictions([20, 19, 18, 17, 16, 15, 14]);
-  }
-}
-
-//Returns the values for the first year of wage
-function getFirstYearWage() {
-  if (getCurrentPageSubcondition() == 1) {
-    return addDatesToFirstYearPredictions([2000, 2100, 2200, 2300, 2400, 2500, 2600]);
-  }
-  else if (getCurrentPageSubcondition() == 2) {
-    return addDatesToFirstYearPredictions([2000, 2100, 2000, 1950, 1900, 2000, 2000]);
-  }
-  else if (getCurrentPageSubcondition() == 3) {
-    return addDatesToFirstYearPredictions([2000, 1900, 1800, 1700, 1600, 1500, 1400]);
-  }
+// Returns the first year values of the current variable
+function getFirstYearValues() {
+  if (getCurrentPageSubcondition() == 1) return getLinearUp(getInitialValue());
+  else if (getCurrentPageSubcondition() == 2) return getStable(getInitialValue());
+  else if (getCurrentPageSubcondition() == 3) return getLinearDown(getInitialValue());
 }
 
 // Returns the initial items to be shown on the graph
@@ -313,7 +230,7 @@ function getInitialItems() {
     return [{x: '0004-01-01', y: getInitialValue()}];
   }
   else if(getExperimentStage() == 2) {
-    return getFirstYearPrediction();
+    return getFirstYearValues();
   }
 }
 
@@ -508,7 +425,6 @@ function compareItems(item1, item2) {
   // The range of acceptance depends on the Y variable
   var range = getAcceptanceRange();
 
-
   equalY = Math.abs(item1.y - item2.y) <= range
 
   return equalYears && equalMonths && equalDays && equalY
@@ -524,7 +440,7 @@ function getAcceptanceRange() {
   else if (getCurrentCondition() == 'facebook_friends') return 0.3
   else if (getCurrentCondition() == 'rain') return 2
   else if (getCurrentCondition() == 'gym_memberships') return 2
-  else if (getCurrentCondition() == 'wage') return 2
+  else if (getCurrentCondition() == 'wage') return 100
 }
 
 // ######################## TOOLS
@@ -598,6 +514,62 @@ function getSubConditions() {
   }
 
   return subc;
+}
+
+function getLinearUp(base, slopeScale = 1){
+  var values = [];
+
+  var scale = 0.05 * base; // The scale is 5% of the base
+
+  var slope = scale * slopeScale; // If the slopeScale is 1, the slope is 5% of the base
+
+  for(var i=0; i < 7; i++) {
+    // Each value is the base + the slope*i + the random_number*scaling
+    values = values.concat( base + slope * i + getSevenRandom()[i] * scale * 4);
+  }
+
+  return addDatesToFirstYearPredictions(values);
+}
+
+function getStable(base){
+  return getLinearUp(base, 0);
+}
+
+function getLinearDown(base, slopeScale = 1){
+  return getLinearUp(base, slopeScale * -1);
+}
+
+// Returns seven random numbers, from -0.5 to 0.5
+// Generated in Python 3.5.2 by "random.random() - 0.5" from the random.py library
+function getSevenRandom() {
+  var sets =
+    [
+      [ 0.16933093785196052 - 0.5,
+        0.7642726400978779 - 0.5,
+        0.59420237112108 - 0.5,
+        0.8045676111568967 - 0.5,
+        0.3616072333221285 - 0.5,
+        0.4333995695523616 - 0.5,
+        0.3448741485276291  - 0.5 ],
+
+      [ 0.2330127377152953 - 0.5,
+        0.44558333713334464 - 0.5,
+        0.7720815219200008 - 0.5,
+        0.091949620524298 - 0.5,
+        0.3371284569763776 - 0.5,
+        0.8147280055034919 - 0.5,
+        0.5571889833319483 - 0.5 ],
+
+      [ 0.015973944458846367 - 0.5,
+        0.6163862558959631 - 0.5,
+        0.04367949448727826 - 0.5,
+        0.057026095449790204 - 0.5,
+        0.040766425126964156 - 0.5,
+        0.17492704212711474 - 0.5,
+        0.08634859133712236 - 0.5 ]
+    ];
+
+  return sets[Math.floor(userId * sets.length)];
 }
 
 // ######################### DEBUG
