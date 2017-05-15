@@ -2,8 +2,11 @@ var userId = Math.random();
 var pageIndex = 0;
 var pagesNames = [];
 
-var condition = shuffle(['temperature', 'sales', 'partners']);
-var subCondition = shuffle([1, 1, 1, 2, 2, 2, 3, 3, 3]);
+var condition = shuffle(['temperature', 'sales', 'facebook_friends', 'rain','gym_memberships', 'wage']);
+
+//Gym memberships
+
+var subCondition = getSubConditions();
 
 historicalData = [];
 
@@ -158,22 +161,37 @@ function sendData() {
 }
 
 function getYAxisRange() {
-  if (getCurrentCondition() == 'temperature') return {min:-11, max:41}
-  else if (getCurrentCondition() == 'sales') return {min:-100, max:5100}
-  else return {min:-0.5, max:10.5}
+  if (getCurrentCondition() == 'temperature') return {min:-11, max:41};
+  else if (getCurrentCondition() == 'sales') return {min:-100, max:5100};
+  else if (getCurrentCondition() == 'facebook_friends') return {min:-0.5, max:10.5};
+  else if (getCurrentCondition() == 'rain') return {min:-5, max:100};
+  else if (getCurrentCondition() == 'gym_memberships') return {min:-5, max:100};
+  else if (getCurrentCondition() == 'wage') return {min:-10, max:3000};
 }
 
 function getYAxisLabel() {
   if (getCurrentCondition() == 'temperature') return 'Temperature (Celsius)'
   else if (getCurrentCondition() == 'sales') return 'Sales (Units)'
-  else return 'Partners'
+  else if (getCurrentCondition() == 'facebook_friends') return 'Number of new Facebook friends';
+  else if (getCurrentCondition() == 'rain') return 'Probability of a rainy day (%)';
+  else if (getCurrentCondition() == 'gym_memberships') return 'Number of new gym memberships';
+  else if (getCurrentCondition() == 'wage') return 'Monthly wage (US dollars)';
 }
 
 // Returns the initial values for the graphs of the first section of the experiment
 function getInitialValue() {
+  // If condition
   if (getCurrentCondition() == 'temperature') return 15;
+
   else if (getCurrentCondition() == 'sales') return 2500;
-  else return 0;
+
+  else if (getCurrentCondition() == 'facebook_friends') return 5;
+
+  else if (getCurrentCondition() == 'rain') return 50;
+
+  else if (getCurrentCondition() == 'gym_memberships') return 50;
+
+  else if (getCurrentCondition() == 'wage') return 2000;
 }
 
 // Returns the predictions for the first year of the current task
@@ -184,8 +202,17 @@ function getFirstYearPrediction() {
   else if (getCurrentCondition() == 'sales') {
     return getFirstYearSales();
   }
-  else {
-    return getFirstYearPartners();
+  else if (getCurrentCondition() == 'facebook_friends') {
+    return getFirstYearFriends();
+  }
+  else if (getCurrentCondition() == 'rain') {
+    return getFirstYearRain();
+  }
+  else if (getCurrentCondition() == 'gym_memberships') {
+    return getFirstYearGymMemberships();
+  }
+  else if (getCurrentCondition() == 'wage') {
+    return getFirstYearWage();
   }
 }
 
@@ -228,8 +255,8 @@ function getFirstYearSales() {
   }
 }
 
-// Returns the values for the first year of partners
-function getFirstYearPartners() {
+// Returns the values for the first year of Facebook friends
+function getFirstYearFriends() {
   if (getCurrentPageSubcondition() == 1) {
     return addDatesToFirstYearPredictions([0, 0, 0, 0, 0, 0, 1]);
   }
@@ -238,6 +265,45 @@ function getFirstYearPartners() {
   }
   else if (getCurrentPageSubcondition() == 3) {
     return addDatesToFirstYearPredictions([0, 1, 2, 2, 2, 3, 4]);
+  }
+}
+
+//Returns the values for the first year of probability of a rainy day
+function getFirstYearRain() {
+  if (getCurrentPageSubcondition() == 1) {
+    return addDatesToFirstYearPredictions([55, 35, 42, 42, 43, 53, 55]); //London http://www.london.climatemps.com/precipitation.php
+  }
+  else if (getCurrentPageSubcondition() == 2) {
+    return addDatesToFirstYearPredictions([3, 3, 26, 32, 27, 10, 3]); //Santiago http://www.santiago.climatemps.com/precipitation.php
+  }
+  else if (getCurrentPageSubcondition() == 3) {
+    return addDatesToFirstYearPredictions([65, 58, 52, 48, 63, 60, 65]); //Reijkavik http://www.reykjavik.climatemps.com/precipitation.php
+  }
+}
+
+//Returns the values for the first year of gym memberships
+function getFirstYearGymMemberships() {
+  if (getCurrentPageSubcondition() == 1) {
+    return addDatesToFirstYearPredictions([20, 21, 22, 23, 24, 25, 26]);
+  }
+  else if (getCurrentPageSubcondition() == 2) {
+    return addDatesToFirstYearPredictions([20, 21, 20, 19, 19, 20, 20]);
+  }
+  else if (getCurrentPageSubcondition() == 3) {
+    return addDatesToFirstYearPredictions([20, 19, 18, 17, 16, 15, 14]);
+  }
+}
+
+//Returns the values for the first year of wage
+function getFirstYearWage() {
+  if (getCurrentPageSubcondition() == 1) {
+    return addDatesToFirstYearPredictions([2000, 2100, 2200, 2300, 2400, 2500, 2600]);
+  }
+  else if (getCurrentPageSubcondition() == 2) {
+    return addDatesToFirstYearPredictions([2000, 2100, 2000, 1950, 1900, 2000, 2000]);
+  }
+  else if (getCurrentPageSubcondition() == 3) {
+    return addDatesToFirstYearPredictions([2000, 1900, 1800, 1700, 1600, 1500, 1400]);
   }
 }
 
@@ -268,23 +334,35 @@ function getExperimentStage() {
 
 function getSpecificInstructions() {
   if(pageIndex <= 4) {
-    if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city.'
-    else if (getCurrentCondition() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company.'
-    else return 'Please draw a graph showing the <strong>number of cummulative sexual partners</strong> that a 21 year old male will have in the future.'
+    if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city.';
+    else if (getCurrentCondition() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company.';
+    else if (getCurrentCondition() == 'facebook_friends') return 'Please draw a graph showing the <strong>new Facebook friends</strong> that a 25 year old male will have in the future.';
+    else if (getCurrentCondition() == 'rain') return 'Please draw the <strong>probability of a rainy day</strong> for a large city.';
+    else if (getCurrentCondition() == 'gym_memberships') return 'Please draw the <strong>number of new gym memberships</strong> for a small gym.';
+    else if (getCurrentCondition() == 'wage') return 'Please draw the <strong>monthly wage</strong> that a 25 year old male will have in the future.';
+
+
   }
   else {
-    if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city, given the information for the first year.'
-    else if (getCurrentCondition() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company, given the information for the first year.'
-    else return 'Please draw a graph showing the <strong>number of cummulative sexual partners</strong> that a 21 year old male will have in the future, given the information for the first year.'
+    if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city, given the information for the first year.';
+    else if (getCurrentCondition() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company, given the information for the first year.';
+    else if (getCurrentCondition() == 'facebook_friends') return 'Please draw a graph showing the <strong>new Facebook friends</strong> that a 25 year old male will have in the future, given the information for the first year.';
+    else if (getCurrentCondition() == 'rain') return 'Please draw the <strong>probability of a rainy day</strong> for a large city, given the information for the first year.';
+    else if (getCurrentCondition() == 'gym_memberships') return 'Please draw the <strong>number of new gym memberships</strong> for a small gym, given the information for the first year.';
+    else if (getCurrentCondition() == 'wage') return 'Please draw the <strong>monthly wage</strong> that a 25 year old male will have in the future, given the information for the first year.';
   }
 }
 
 function getCurrentCondition() {
-  return condition[(pageIndex - 2) % 3];
+  return condition[(pageIndex - 2) % getConditionsCount()];
 }
 
 function getCurrentPageSubcondition() {
-  return subCondition[(pageIndex - 2) % 3];
+  return subCondition[(pageIndex - 2) % getConditionsCount()];
+}
+
+function getConditionsCount() {
+  return condition.length;
 }
 
 function graphOnClick(params) {
@@ -428,10 +506,8 @@ function compareItems(item1, item2) {
   equalDays = Math.abs(components1[2] - components2[2]) <= 10 // Less than X days of difference
 
   // The range of acceptance depends on the Y variable
-  var range = 1;
-  if (getCurrentCondition() == 'temperature') range = 1
-  else if (getCurrentCondition() == 'sales') range = 100
-  else range = 0.3
+  var range = getAcceptanceRange();
+
 
   equalY = Math.abs(item1.y - item2.y) <= range
 
@@ -440,6 +516,15 @@ function compareItems(item1, item2) {
 
 function getUserId() {
   return userId;
+}
+
+function getAcceptanceRange() {
+  if (getCurrentCondition() == 'temperature') return 1
+  else if (getCurrentCondition() == 'sales') return 100
+  else if (getCurrentCondition() == 'facebook_friends') return 0.3
+  else if (getCurrentCondition() == 'rain') return 2
+  else if (getCurrentCondition() == 'gym_memberships') return 2
+  else if (getCurrentCondition() == 'wage') return 2
 }
 
 // ######################## TOOLS
@@ -500,6 +585,19 @@ function getAge() {
 // Returns the gender on the demographics' form
 function getGender() {
   return $('input[name=gender]:checked', '#demographics').val();
+}
+
+function getSubConditions() {
+  var subc = [];
+
+  for(var i=0; i < getConditionsCount(); i++) {
+    // Each condition can have one of three conditions in the second stage
+    // of the experiment, namely {1,2,3}.
+    var oneToThree = Math.floor((Math.random() * 3) + 1);
+    subc = subc.concat(oneToThree);
+  }
+
+  return subc;
 }
 
 // ######################### DEBUG
