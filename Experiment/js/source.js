@@ -14,7 +14,8 @@ historicalData = [];
 var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
-    //debug(6);
+  showPlayGraph();
+  debug(1);
 });
 
 function toggleInstructions() {
@@ -109,7 +110,7 @@ function showPlayGraph() {
 
     dataAxis: {
         left: {
-            range: getMinMax([0, 100]),
+            range: getMinMax(getYAxisRange()),
             title: {text: "Y-axis"}
         },
     },
@@ -198,10 +199,11 @@ function sendData() {
 function getYAxisRange() {
   if (getCurrentCondition() == 'temperature') return [-10, 40];
   else if (getCurrentCondition() == 'sales') return [0, 5000];
-  else if (getCurrentCondition() == 'facebook_friends') return [-0.1, 10];
+  else if (getCurrentCondition() == 'facebook_friends') return [0, 1000];
   else if (getCurrentCondition() == 'rain') return [0, 100];
   else if (getCurrentCondition() == 'gym_memberships') return [0, 50];
   else if (getCurrentCondition() == 'wage') return [0, 5000];
+  else return [0, 100];
 }
 
 // range = [min, max]
@@ -230,7 +232,7 @@ function getInitialValue() {
 
   else if (getCurrentCondition() == 'sales') return 2500;
 
-  else if (getCurrentCondition() == 'facebook_friends') return 5;
+  else if (getCurrentCondition() == 'facebook_friends') return 200;
 
   else if (getCurrentCondition() == 'rain') return 30;
 
@@ -288,22 +290,24 @@ function getExperimentStage() {
 }
 
 function getSpecificInstructions() {
+  var text = ''
+
+  if (getCurrentCondition() == 'temperature') text = 'Please draw the <strong>weather forecast</strong> for a large city';
+  else if (getCurrentCondition() == 'sales') text = 'Please draw the <strong>sales forecast</strong> for a large company';
+  else if (getCurrentCondition() == 'facebook_friends') text = 'Please draw a graph showing the <strong>number of total Facebook friends</strong> of a 25 year old male';
+  else if (getCurrentCondition() == 'rain') text = 'Please draw the <strong>probability of a rainy day</strong> for a large city';
+  else if (getCurrentCondition() == 'gym_memberships') text = 'Please draw the <strong>number gym members</strong> of a small gym';
+  else if (getCurrentCondition() == 'wage') text = 'Please draw the <strong>hourly wage</strong> of a 25 year old male';
+
+
   if(getExperimentStage() == 1) {
-    if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city.';
-    else if (getCurrentCondition() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company.';
-    else if (getCurrentCondition() == 'facebook_friends') return 'Please draw a graph showing the <strong>new Facebook friends</strong> that a 25 year old male will have in the future.';
-    else if (getCurrentCondition() == 'rain') return 'Please draw the <strong>probability of a rainy day</strong> for a large city.';
-    else if (getCurrentCondition() == 'gym_memberships') return 'Please draw the <strong>number of new gym memberships</strong> for a small gym.';
-    else if (getCurrentCondition() == 'wage') return 'Please draw the <strong>monthly wage</strong> that a 25 year old male will have in the future.';
+    text = text.concat('.');
   }
-  else {
-    if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city, given the information for the first year.';
-    else if (getCurrentCondition() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company, given the information for the first year.';
-    else if (getCurrentCondition() == 'facebook_friends') return 'Please draw a graph showing the <strong>new Facebook friends</strong> that a 25 year old male will have in the future, given the information for the first year.';
-    else if (getCurrentCondition() == 'rain') return 'Please draw the <strong>probability of a rainy day</strong> for a large city, given the information for the first year.';
-    else if (getCurrentCondition() == 'gym_memberships') return 'Please draw the <strong>number of new gym memberships</strong> for a small gym, given the information for the first year.';
-    else if (getCurrentCondition() == 'wage') return 'Please draw the <strong>monthly wage</strong> that a 25 year old male will have in the future, given the information for the first year.';
+  else if(getExperimentStage() == 2) {
+    text = text.concat(', given the information for the first year.')
   }
+
+  return text;
 }
 
 function getCurrentCondition() {
@@ -470,13 +474,10 @@ function getUserId() {
   return userId;
 }
 
+// Returns the acceptance range that is used to evaluate when a point is deleted.
 function getAcceptanceRange() {
-  if (getCurrentCondition() == 'temperature') return 1
-  else if (getCurrentCondition() == 'sales') return 100
-  else if (getCurrentCondition() == 'facebook_friends') return 0.3
-  else if (getCurrentCondition() == 'rain') return 2
-  else if (getCurrentCondition() == 'gym_memberships') return 2
-  else if (getCurrentCondition() == 'wage') return 100
+  var yRange = getYAxisRange();
+  return (yRange[1] - yRange[0])/50;
 }
 
 // ######################## TOOLS
