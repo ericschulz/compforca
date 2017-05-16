@@ -14,7 +14,7 @@ historicalData = [];
 var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
-    debug(6);
+    //debug(6);
 });
 
 function toggleInstructions() {
@@ -33,7 +33,7 @@ var items = [];
 var newItem;
 
 function nextPage(){
-  if(pageIndex > 1 && pageIndex < 8){
+  if(pageIndex > 1 && pageIndex < 2 + getConditionsCount()*2){
     // Destroy the previous graph
     graph.destroy();
 
@@ -43,39 +43,39 @@ function nextPage(){
 
   pageIndex++;
 
-  if(pageIndex == 1) {
+  if(getExperimentStage() == 0) {
     hideShow('#page1', '#page2');
   }
-  else if (pageIndex <= 7) {
+  else if (getExperimentStage() == 1 || getExperimentStage() == 2) {
     $("#instructions").hide();
     $('#canvasPage').fadeIn();
     disableContinueButton();
 
     // First page of section 2
-    if(pageIndex == 5) {
+    if(pageIndex == 2 + getConditionsCount()) {
       $("#instructions").show();
       window.scrollTo(0,0);
       $('#instructions_title').text('Instructions - PART 2');
-      $('#second_section_instruction').show()
+      $('#second_section_instruction').show();
     }
 
     // Create, show, and save graph
-    graph = showGraph()
+    graph = showGraph();
 
-    // Remove all items
-    if (pageIndex <= 4) {
-      items = []
+    // Remove all items if we are on Stage 1
+    if (getExperimentStage() == 1) {
+      items = [];
     }
   }
   // Demographics page
-  else if (pageIndex == 8) {
+  else if (getExperimentStage() == 3) {
     $('#demographicsPage').fadeIn()
     $('#page2').hide()
     $('#canvasPage').hide()
     disableContinueButton();
   }
   // Thank you page
-  else if (pageIndex == 9) {
+  else if (getExperimentStage() == 4) {
     // Save and send all the information to the server
     sendData();
 
@@ -87,6 +87,41 @@ function nextPage(){
     // Show the final page
     $('#thankYouPage').fadeIn()
   }
+}
+
+// Play graph
+function showPlayGraph() {
+  var container = document.getElementById('play_graph');
+
+  items = [
+    {x: '0000-01-01', y: 10},
+    {x: '0000-06-01', y: 20},
+    {x: '0000-12-01', y: 30}
+  ];
+
+  var dataset = new vis.DataSet(items);
+
+  var options = {
+    moveable: false,
+    zoomable: false,
+    min:  '0000-01-01',
+    max:  '0003-12-31',
+
+    dataAxis: {
+        left: {
+            range: getMinMax([0, 100]),
+            title: {text: "Y-axis"}
+        },
+    },
+
+    start:'0000-01-01',
+    end:  '0003-12-31'
+  };
+
+  // Show and return Graph2d object
+  graph = new vis.Graph2d(container, dataset, options);
+
+  graph.on("click", graphOnClick)
 }
 
 // Graph
@@ -123,7 +158,7 @@ function showGraph(pageName) {
   updateLabels(checkItems(items))
 
   // Show and return Graph2d object
-  g = new vis.Graph2d(container, dataset, options);
+  var g = new vis.Graph2d(container, dataset, options);
 
   g.on("click", graphOnClick)
 
@@ -163,7 +198,7 @@ function sendData() {
 function getYAxisRange() {
   if (getCurrentCondition() == 'temperature') return [-10, 40];
   else if (getCurrentCondition() == 'sales') return [0, 5000];
-  else if (getCurrentCondition() == 'facebook_friends') return [0, 10];
+  else if (getCurrentCondition() == 'facebook_friends') return [-0.1, 10];
   else if (getCurrentCondition() == 'rain') return [0, 100];
   else if (getCurrentCondition() == 'gym_memberships') return [0, 50];
   else if (getCurrentCondition() == 'wage') return [0, 5000];
@@ -227,7 +262,7 @@ function getFirstYearValues() {
 // Returns the initial items to be shown on the graph
 function getInitialItems() {
   if(getExperimentStage() == 1) {
-    return [{x: '0004-01-01', y: getInitialValue()}];
+    return [{x: '0005-01-01', y: getInitialValue()}];
   }
   else if(getExperimentStage() == 2) {
     return getFirstYearValues();
@@ -238,27 +273,28 @@ function getExperimentStage() {
   if(pageIndex <= 1) {
     return 0;
   }
-  else if(pageIndex <= 4) {
+  else if(pageIndex <= 1 + getConditionsCount()) {
     return 1;
   }
-  else if(pageIndex <= 7) {
+  else if(pageIndex <= 1 + 2 * getConditionsCount()) {
     return 2;
   }
+  else if (pageIndex == 2 + 2 * getConditionsCount()) {
+    return 3
+  }
   else {
-    return 3;
+    return 4;
   }
 }
 
 function getSpecificInstructions() {
-  if(pageIndex <= 4) {
+  if(getExperimentStage() == 1) {
     if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city.';
     else if (getCurrentCondition() == 'sales') return 'Please draw the <strong>sales forecast</strong> for a large company.';
     else if (getCurrentCondition() == 'facebook_friends') return 'Please draw a graph showing the <strong>new Facebook friends</strong> that a 25 year old male will have in the future.';
     else if (getCurrentCondition() == 'rain') return 'Please draw the <strong>probability of a rainy day</strong> for a large city.';
     else if (getCurrentCondition() == 'gym_memberships') return 'Please draw the <strong>number of new gym memberships</strong> for a small gym.';
     else if (getCurrentCondition() == 'wage') return 'Please draw the <strong>monthly wage</strong> that a 25 year old male will have in the future.';
-
-
   }
   else {
     if (getCurrentCondition() == 'temperature') return 'Please draw the <strong>weather forecast</strong> for a large city, given the information for the first year.';
