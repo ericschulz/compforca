@@ -3,9 +3,6 @@ var pageIndex = 0;
 var pagesNames = [];
 
 var condition = shuffle(['temperature', 'sales', 'facebook_friends', 'rain','gym_memberships', 'wage']);
-
-//Gym memberships
-
 var subCondition = getSubConditions();
 
 historicalData = [];
@@ -15,7 +12,7 @@ var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
   showPlayGraph();
-  debug(1);
+  //debug(8);
 });
 
 function toggleInstructions() {
@@ -44,7 +41,7 @@ function nextPage(){
 
   pageIndex++;
 
-  if(getExperimentStage() == 0) {
+  if(getExperimentStage() === 0) {
     hideShow('#page1', '#page2');
   }
   else if (getExperimentStage() == 1 || getExperimentStage() == 2) {
@@ -70,9 +67,9 @@ function nextPage(){
   }
   // Demographics page
   else if (getExperimentStage() == 3) {
-    $('#demographicsPage').fadeIn()
-    $('#page2').hide()
-    $('#canvasPage').hide()
+    $('#demographicsPage').fadeIn();
+    $('#page2').hide();
+    $('#canvasPage').hide();
     disableContinueButton();
   }
   // Thank you page
@@ -81,12 +78,12 @@ function nextPage(){
     sendData();
 
     // Hide the demographics' page and the continue button
-    $('#demographicsPage').hide()
-    $('#continueButtonPage').hide()
+    $('#demographicsPage').hide();
+    $('#continueButtonPage').hide();
     disableContinueButton();
 
     // Show the final page
-    $('#thankYouPage').fadeIn()
+    $('#thankYouPage').fadeIn();
   }
 }
 
@@ -106,23 +103,25 @@ function showPlayGraph() {
     moveable: false,
     zoomable: false,
     min:  '0000-01-01',
-    max:  '0003-12-31',
+    max:  '0004-01-05',
 
     dataAxis: {
         left: {
             range: getMinMax(getYAxisRange()),
             title: {text: "Y-axis"}
-        },
+        }
     },
 
+    timeAxis: {scale: 'month', step: 2},
+
     start:'0000-01-01',
-    end:  '0003-12-31'
+    end:  '0004-01-05'
   };
 
   // Show and return Graph2d object
   graph = new vis.Graph2d(container, dataset, options);
 
-  graph.on("click", graphOnClick)
+  graph.on("click", graphOnClick);
 }
 
 // Graph
@@ -141,27 +140,33 @@ function showGraph(pageName) {
     //zoomMin: 315360000000,
     //zoomMax: 315360000000,
     min:  '0000-01-01',
-    max:  '0003-12-31',
+    max:  '0004-01-05',
 
     dataAxis: {
         left: {
             range: getMinMax(getYAxisRange()),
             title: {text: getYAxisLabel()}
-        },
-
+        }
     },
 
+    interpolation: {
+      enabled: true,
+      parametrization: 'centripetal'
+    },
+
+    timeAxis: {scale: 'month', step: 2},
+
     start:'0000-01-01',
-    end:  '0003-12-31'
+    end:  '0004-01-05'
   };
 
   // Updates the labels
-  updateLabels(checkItems(items))
+  updateLabels(checkItems(items));
 
   // Show and return Graph2d object
   var g = new vis.Graph2d(container, dataset, options);
 
-  g.on("click", graphOnClick)
+  g.on("click", graphOnClick);
 
   return g;
 }
@@ -197,13 +202,13 @@ function sendData() {
 }
 
 function getYAxisRange() {
-  if (getCurrentCondition() == 'temperature') return [-10, 40];
-  else if (getCurrentCondition() == 'sales') return [0, 5000];
-  else if (getCurrentCondition() == 'facebook_friends') return [0, 1000];
-  else if (getCurrentCondition() == 'rain') return [0, 100];
-  else if (getCurrentCondition() == 'gym_memberships') return [0, 50];
-  else if (getCurrentCondition() == 'wage') return [0, 5000];
-  else return [0, 100];
+  if (getCurrentCondition() == 'temperature') { return [-10, 40]; }
+  else if (getCurrentCondition() == 'sales') { return [0, 5000]; }
+  else if (getCurrentCondition() == 'facebook_friends') { return [0, 1000]; }
+  else if (getCurrentCondition() == 'rain') { return [0, 100]; }
+  else if (getCurrentCondition() == 'gym_memberships') { return [0, 50]; }
+  else if (getCurrentCondition() == 'wage') { return [0, 50]; }
+  else { return [0, 100]; }
 }
 
 // range = [min, max]
@@ -217,12 +222,12 @@ function getMinMax(range) {
 }
 
 function getYAxisLabel() {
-  if (getCurrentCondition() == 'temperature') return 'Temperature (Celsius)'
-  else if (getCurrentCondition() == 'sales') return 'Sales (Units)'
-  else if (getCurrentCondition() == 'facebook_friends') return 'Number of new Facebook friends';
-  else if (getCurrentCondition() == 'rain') return 'Probability of a rainy day (%)';
-  else if (getCurrentCondition() == 'gym_memberships') return 'Number of new gym memberships';
-  else if (getCurrentCondition() == 'wage') return 'Monthly wage (US dollars)';
+  if (getCurrentCondition() == 'temperature') { return 'Temperature (Celsius)'; }
+  else if (getCurrentCondition() == 'sales') { return 'Sales (Units)'; }
+  else if (getCurrentCondition() == 'facebook_friends') { return 'Number of total Facebook friends'; }
+  else if (getCurrentCondition() == 'rain') { return 'Probability of a rainy day (%)'; }
+  else if (getCurrentCondition() == 'gym_memberships') { return 'Number of total gym members'; }
+  else if (getCurrentCondition() == 'wage') { return 'Hourly wage (US dollars)'; }
 }
 
 // Returns the initial values for the graphs of the first section of the experiment
@@ -238,7 +243,7 @@ function getInitialValue() {
 
   else if (getCurrentCondition() == 'gym_memberships') return 30;
 
-  else if (getCurrentCondition() == 'wage') return 2500;
+  else if (getCurrentCondition() == 'wage') return 20;
 }
 
 // Converts the values into an items object by adding dates
@@ -342,11 +347,7 @@ function graphOnClick(params) {
 
   // If the item was found
   if(index >= 0) {
-    // If the experiment is on its second stage, then the index must be 6 or larger
-    if(!(getExperimentStage() == 2 && index <= 6)) {
-      // Remove the item (remove/delete 1 element in position 'index' from 'items')
-      items.splice(index, 1)
-    }
+    removePoint(index);
   }
   // In other case, it is added
   else {
@@ -357,8 +358,26 @@ function graphOnClick(params) {
   }
 
   // Updates the items shown
-  updateItems(items)
+  updateItems(items);
 }
+
+// Removes a point from the points' array
+function removePoint(index) {
+  if(index >= 0) {
+    // If the experiment is on its second stage, then the index must be 6 or larger
+    if(!(getExperimentStage() == 2 && index <= 6)) {
+      // Remove the item (remove/delete 1 element in position 'index' from 'items')
+      items.splice(index, 1)
+    }
+  }
+}
+
+// Removes the last point added (called by the Undo button)
+function removeLastPoint() {
+  removePoint(items.length-1);
+  updateItems(items);
+}
+
 
 // Returns true if the year of the item is not "000-x"
 function nonNegativeYear(item) {
@@ -511,7 +530,7 @@ function cloneObject(object) {
 // Check the demographics data when the form changes.
 $('#demographics').change(function(){
   // If the data is full, then enable the Continue button
-  var full = (getAge() != undefined) && (getGender() != undefined)
+  var full = (getAge() !== undefined) && (getGender() !== undefined)
 
   if (full) {
     enableContinueButton();
@@ -543,12 +562,16 @@ function getGender() {
 function getSubConditions() {
   var subc = [];
 
+  // Create an ordered and balanced subconditions array.
+  // If there are three conditions, it will create this: [1,2,3,1,2,3]
+  // It can be seen that there are the same amount of each subcondition
   for(var i=0; i < getConditionsCount(); i++) {
-    // Each condition can have one of three conditions in the second stage
-    // of the experiment, namely {1,2,3}.
-    var oneToThree = Math.floor((Math.random() * 3) + 1);
+    var oneToThree = (i % 3) + 1;
     subc = subc.concat(oneToThree);
   }
+
+  // Now shuffle it:
+  subc = shuffle(subc)
 
   return subc;
 }

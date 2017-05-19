@@ -47,7 +47,7 @@
               This study is part of a research project conducted by
               Francisco Quiroga Vergara, at University College London.
               It investigates how people learn and predict
-              functions.<br />
+              functions. It takes approximately 10 minutes to complete.<br />
               If you have any questions, please contact
               <u>francisco.quiroga-vergara.16 ( at ) ucl.ac.uk</u>
           </p>
@@ -65,8 +65,8 @@
             will automatically connect the points to build a graph.
           </p>
           <p>
-            The experiment consists of two parts. Please read
-            the specific instructions of each section carefully.
+            The experiment consists of <strong>two stages</strong>. In each stage you will plot <strong>six times</strong>.
+            Please read the specific instructions of each stage carefully.
           </p>
         </div>
       </div> <!-- end row -->
@@ -75,8 +75,24 @@
 
         <p>
           The graph below is not part of the experiment. It is here so you can
-          try and see how it works.
+          try and see how the interface works.
         </p>
+
+        <ol>
+          <li>
+            To draw the graph, just click on the plot to place a point. You can
+            add as many points as you want.
+          </li>
+          <li>
+            To remove a point, click on it.
+          </li>
+          <li>
+            The points will be automatically connected by a curve.
+          </li>
+          <li>
+            Press 'Continue' when you are done.
+          </li>
+        </ol>
 
         <div id="play_graph"></div>
 
@@ -98,7 +114,7 @@
 
           <ol>
             <li>
-              Below you will see a plot.
+              Below you will see a <u>three-years plot</u>.
               Your goal is to draw a graph that shows the values of the variable you are
               being asked to predict.
             </li>
@@ -143,20 +159,26 @@
     <div class="container" id="canvasPage" style="display:none">
       <div class="row">
         <h3>Plot</h3>
-        <div >
+        <div class="col-md-8">
+          <h4 id="specificInstructions"></h4>
           <p>
-            <span id="specificInstructions"></span><br />
             - Place at least one point on the <strong>first</strong> month.
             <span class="glyphicon glyphicon-ok" aria-hidden="true" id='firstMonth' style='display: none'></span><br />
 
             - Place at least one point on the <strong>last</strong> month.
             <span class="glyphicon glyphicon-ok" aria-hidden="true" id='lastMonth' style='display: none'></span>
-
           </p>
         </div>
 
+        <div class="col-md-4">
+          <button type="button" class="btn btn-default"
+            style="float:right; margin-top:36 px;" onclick="removeLastPoint();">
+            Undo
+          </button>
+        </div>
+      </div>
+      <div class="row">
         <div id="graph"></div>
-
       </div>
     </div> <!-- canvasPage end -->
 
@@ -235,9 +257,9 @@
     <div class="container" id="continueButtonPage">
       <br />
       <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-12">
           <button type="button" name="continue" class="btn btn-primary"
-                  onclick="nextPage();">
+                  style="float:right;" onclick="nextPage();">
             Continue
           </button>
         </div>
