@@ -1,4 +1,4 @@
-var userId = Math.random();
+var fixedRandom = Math.random();
 var pageIndex = 0;
 var pagesNames = [];
 
@@ -193,6 +193,7 @@ function sendData() {
 
   database.push({
     'userId': getUserId(),
+    'sessionId': getSessionId(),
     'now': now,
     'datetime': (new Date(now)).toString(),
     'gender': getGender().toString(),
@@ -491,8 +492,15 @@ function compareItems(item1, item2) {
   return equalYears && equalMonths && equalDays && equalY
 }
 
+// Returns the user id
 function getUserId() {
-  return userId;
+  //https://panchoqv.github.io/compforcaQV/?prolific_pid={{%PROLIFIC_PID%}}&session_id={{%SESSION_ID%}}
+  return getUrlParameter('prolific_pid');
+}
+
+// Returns the session id
+function getSessionId() {
+  return getUrlParameter('session_id');
 }
 
 // Returns the acceptance range that is used to evaluate when a point is deleted.
@@ -527,6 +535,23 @@ function shuffle(array) {
 function cloneObject(object) {
   return jQuery.extend(true, {}, oldObject);
 }
+
+// From: https://stackoverflow.com/questions/19491336/get-url-parameter-jquery-or-how-to-get-query-string-values-in-js
+// It returns the URL GET parameter indicated by (string) sParam
+var getUrlParameter = function getUrlParameter(sParam) {
+    var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : sParameterName[1];
+        }
+    }
+};
 
 
 // Check the demographics data when the form changes.
@@ -631,7 +656,7 @@ function getSevenRandom() {
         0.08634859133712236 - 0.5 ]
     ];
 
-  return sets[Math.floor(userId * sets.length)];
+  return sets[Math.floor(fixedRandom * sets.length)];
 }
 
 // ######################### DEBUG
