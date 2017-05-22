@@ -402,8 +402,8 @@ function updateItems(items) {
 // Checks whether the items attain the rules
 // Returns a boolean's array
 function checkItems(items) {
-  firstMonth = false;
-  lastMonth = false;
+  var firstMonth = false;
+  var lastMonth = false;
 
   for(i=0; i < items.length; i++) {
     dateElements = items[i].x.split('-')
@@ -411,6 +411,8 @@ function checkItems(items) {
     firstMonth = firstMonth || (dateElements[0] == '0000' && dateElements[1] == '01')
 
     lastMonth = lastMonth || (dateElements[0] == '0003' && dateElements[1] == '12')
+
+    lastMonth = lastMonth || (dateElements[0] == '0004' && dateElements[1] == '01')
   }
 
   return [firstMonth, lastMonth]
