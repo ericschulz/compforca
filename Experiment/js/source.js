@@ -12,7 +12,7 @@ var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
   showPlayGraph();
-  //debug(8);
+  //debug(13);
 });
 
 function toggleInstructions() {
