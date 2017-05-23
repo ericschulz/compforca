@@ -13,270 +13,175 @@
     <!-- Libraries -->
     <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
     <script src="https://code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
-    <script src='https://cdn.firebase.com/js/client/1.1.1/firebase.js'></script>
-    <script src="js/lalolib.js"></script>
-    <script src="js/d3.min.js"></script>
-    <script src="js/numeric-1.2.6.js" charset="utf-8"></script>
+
     <link href="https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet" type="text/css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
-    <!-- vis library -->
-    <script src="js/vis/vis417.min.js"></script>
-    <link rel="stylesheet" href="js/vis/vis.min.css">
 
     <title>Experiment</title>
   </head>
 
   <body>
 
-    <!-- Title -->
     <div class="container">
-      <div class="row">
-        <h1>Predictions</h1>
-      </div>
-    </div>
 
+      <img src="ucl-logo.jpg">
 
-    <!-- PAGE 1 -->
-    <div class="container" id="page1">
-
-      <div class="row">
-        <h3>Information</h3>
-        <div class="col-md-6">
-          <p>
-              This study is part of a research project conducted by
-              Francisco Quiroga Vergara, at University College London.
-              It investigates how people learn and predict
-              functions. It takes approximately 10 minutes to complete.<br />
-              If you have any questions, please contact
-              <u>francisco.quiroga-vergara.16 ( at ) ucl.ac.uk</u>
-          </p>
-        </div>
-      </div> <!-- end row -->
-
-      <div class="row">
-        <h3>General instructions</h3>
-        <div class="col-md-6">
-          <p>
-            In this study, we will show you an empty plot where you will have
-            to graph your prediction for different variables. Please try to make
-            the best predictions you can. You have to imagine the values for the
-            asked variable and then simply draw the points on the plot. The software
-            will automatically connect the points to build a graph.
-          </p>
-          <p>
-            The experiment consists of <strong>two stages</strong>. In each stage you will plot <strong>six times</strong>.
-            Please read the specific instructions of each stage carefully.
-          </p>
-        </div>
-      </div> <!-- end row -->
-      <div class="row">
-        <h4>Play with the plot below</h4>
-
-        <p>
-          The graph below is not part of the experiment. It is here so you can
-          try and see how the interface works.
-        </p>
-
-        <ol>
-          <li>
-            To draw the graph, just click on the plot to place a point. You can
-            add as many points as you want.
-          </li>
-          <li>
-            To remove a point, click on it.
-          </li>
-          <li>
-            The points will be automatically connected by a curve.
-          </li>
-          <li>
-            Press 'Continue' when you are done.
-          </li>
-        </ol>
-
-        <div id="play_graph"></div>
-
-      </div> <!-- end row -->
-
-    </div>
-
-    <!-- PAGE 2 -->
-    <div class="container" id="page2" style="display:none">
-
-      <div class="row">
-        <h3 id="instructions_title">Instructions - PART 1</h3>
-
-        <div class="col-md-6" id="instructions">
-          <div class="alert alert-warning" role="alert">
-            <strong>Please read the instructions carefully
-            and try to perform as well as you can.</strong>
-          </div>
-
-          <ol>
-            <li>
-              Below you will see a <u>three-years plot</u>.
-              Your goal is to draw a graph that shows the values of the variable you are
-              being asked to predict.
-            </li>
-            <li id="second_section_instruction" style="display:none">
-              <strong>There is real data for the first year only. You have to predict the data for the subsequent years.</strong>
-            </li>
-            <li>
-              To draw the graph, just click on the plot to place a point. You can
-              add as many points as you want.
-            </li>
-            <li>
-              To remove a point, click on it.
-            </li>
-            <li>
-              The points will be automatically connected by a curve.
-            </li>
-            <li>
-              A point must be placed at the leftmost side of the plot, and
-              another one has to be placed at the rightmost side of the plot.
-            </li>
-            <li>
-              Press 'Continue' when you are done.
-            </li>
-          </ol>
-        </div>
-
-      </div> <!-- row end -->
-
-      <div class="row">
-        <div class="col-md-6">
-          <button type="button" name="button" class="btn btn-default"
-                  onclick="toggleInstructions()">
-            Show/hide instructions
-          </button>
-        </div>
+      <div class="page-header">
+        <h2>Information Sheet for Participants in Research Studies</h2>
       </div>
 
-      <br />
+      <h4>Title of the project:</h4>
+      <p>A Bayesian Approach to Judgmental Forecasting</p>
+      <p>This study has been approved by the Experimental Psychology Research
+        Department’s Ethics Chair, [Project ID No]: <strong>EP/2015/8</strong></p>
 
-    </div> <!-- page2 end -->
+      <hr>
 
-    <div class="container" id="canvasPage" style="display:none">
+      <h4>Name, Address and Contact Details of Investigators:</h4>
+      <p>
+        Francisco Quiroga,
+        Dr. Eric Schulz,
+        Prof. Nigel Harvey<br />
+        Department of Experimental Psychology <br />
+        University College London  <br />
+        Gower Street <br />
+        London WC1E 6BT <br />
+        United Kingdom  <br />
+        +44 (0)20 7679 5387 <br />
+      </p>
+
+      <hr>
+
+      <h4>Project</h4>
       <div class="row">
-        <h3>Plot</h3>
         <div class="col-md-8">
-          <h4 id="specificInstructions"></h4>
           <p>
-            - Place at least one point on the <strong>first</strong> month.
-            <span class="glyphicon glyphicon-ok" aria-hidden="true" id='firstMonth' style='display: none'></span><br />
-
-            - Place at least one point on the <strong>last</strong> month.
-            <span class="glyphicon glyphicon-ok" aria-hidden="true" id='lastMonth' style='display: none'></span>
-          </p>
-        </div>
-
-        <div class="col-md-4">
-          <button type="button" class="btn btn-default"
-            style="float:right; margin-top:36 px;" onclick="removeLastPoint();">
-            Undo
-          </button>
-        </div>
-      </div>
-      <div class="row">
-        <div id="graph"></div>
-      </div>
-    </div> <!-- canvasPage end -->
-
-    <!-- DEMOGRAPHICS PAGE -->
-    <div class="container" id="demographicsPage" style="display:none">
-      <form id="demographics">
-        <!-- Title -->
-        <div class="row">
-          <div class="col-md-6">
-            <h3>Your information</h3>
-            <p>Please fill with your personal data.</p>
-          </div>
-        </div>
-        <!-- Age -->
-        <div class="row">
-          <div class="col-lg-6">
-            <h4>Age</h4>
-            <div class="input-group input-group-lg">
-              <label class="radio-inline">
-                <input type="radio" name="age" value="18-25" />18-25
-              </label>
-              <label class="radio-inline">
-                <input type="radio" name="age" value="26-35" />26-35
-              </label>
-              <label class="radio-inline">
-                <input type="radio" name="age" value="36-45" />36-45
-              </label>
-              <label class="radio-inline">
-                <input type="radio" name="age" value="46-55" />46-55
-              </label>
-              <label class="radio-inline">
-                <input type="radio" name="age" value="56-65" />56-65
-              </label>
-              <label class="radio-inline">
-                <input type="radio" name="age" value="66+" />66+
-              </label>
-            </div>
-          </div>
-        </div>
-        <!-- Gender -->
-        <div class="row">
-          <div class="col-lg-6">
-            <h4>Gender</h4>
-            <div class="input-group input-group-lg">
-              <label class="radio-inline">
-                <input type="radio" name="gender" value="female" />Female
-              </label>
-              <label class="radio-inline">
-                <input type="radio" name="gender" value="male" />Male
-              </label>
-            </div><!-- /input-group -->
-          </div><!-- /.col-lg-6 -->
-        </div>
-      </form>
-    </div>
-    <!-- END demographicsPage -->
-
-    <!-- Thank You page -->
-    <div class="container" id="thankYouPage" style="display:none;">
-      <br />
-      <div class="row">
-        <div class="col-md-6">
-          <h1>Thank you</h1>
-          <p>If you would like to read the <strong>research paper</strong> that will be published
-            using the information gatheres in this experiment, please add your email to
-            <a target="_blank" href="http://eepurl.com/cOugvH">this newsletter</a>
-            (it will open on a new tab).</p>
-
-          <p>
-            To complete the study, click here:
-
-            <a href="https://prolific.ac/submissions/complete?cc=YHMPRBJ7">https://prolific.ac/submissions/complete?cc=YHMPRBJ7</a>
-
+            We would like to invite you to participate in this research project
+            directed by researchers at UCL. You should only participate if you want
+            to; choosing not to take part will not disadvantage you in any way.
+            Before you decide whether you want to take part, it is important for you
+            to read the following information carefully and discuss it with others
+            if you wish. Ask us if there is anything that is not clear or if you
+            would like more information (francisco.quiroga-vergara.16@ucl.ac.uk).
+            In this online study, we will show you an empty plot where you will
+            have to graph your prediction for different variables. All data will be
+            handled according to the Data Protection Act 1998 and will be kept
+            anonymous. Only UCL researchers working with Dr. Schulz or Prof. Harvey
+            will analyze these data. It is up to you to decide whether or not to
+            take part. If you decide to take part you will be given this information
+            sheet to keep and be asked to sign a consent form. If you decide to take
+            part you are still free to withdraw at any time by closing your browser.
+            You may wish to print this information sheet for your records.
           </p>
         </div>
       </div>
 
-      <br />
-      <br />
-    </div>
-    <!-- END thankYouPage -->
+      <hr>
 
-    <!-- CONTINUE BUTTON -->
-    <div class="container" id="continueButtonPage">
-      <br />
+      <div class="page-header">
+        <h2>Informed Consent Form for Participants in Research Studies</h2>
+      </div>
+
+      <p>
+        Title of Project: A Bayesian Approach to Judgmental Forecasting
+        <br />
+        This study has been approved by Cognitive, Perceptual and Behavioural
+        Sciences Research Department’s Ethics Chair [Project ID No]: <strong>CPB/2010/013</strong>
+      </p>
+
+      <hr>
+
+      <h4>Participant’s Statement</h4>
+
+      <p>By ticking the appropriate boxes below, I agree that I have:</p>
+
       <div class="row">
-        <div class="col-md-12">
-          <button type="button" name="continue" class="btn btn-primary"
-                  style="float:right;" onclick="nextPage();">
-            Continue
-          </button>
+        <div class="col-md-8">
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Read the information sheet.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Had the opportunity to ask questions and discuss the study.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Received satisfactory answers to all my questions or have been
+              advised of an individual to contact for answers to pertinent
+              questions about the research and my rights as a participant and
+              whom to contact in the event of a research-related injury.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Understood that I have the right to withdraw at any stage simply
+              by closing my browser.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Understood that I consent to the processing of my personal
+              information for the purposes of this study only and that any such
+              information will be treated as strictly confidential and handled
+              in accordance with the provisions of the Data Protection Act 1998.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Understood that, by clicking ‘continue’, I consent to participate
+              in this study.
+            </label>
+          </div>
         </div>
       </div>
-      <br />
-      <br />
-    </div>
-    <!-- END continue button -->
 
-    <script src="js/source.js" charset="utf-8"></script>
+      <!-- CONTINUE BUTTON -->
+      <div class="row">
+        <a id="start_experiment">
+          <button type="button" disabled id="continue" class="btn btn-primary"
+          style="margin-bottom:40px;">Continue</button>
+        </a>
+      </div>
+
+    </div> <!-- end container -->
+
+    <script>
+      $(function() {
+        updateLink();
+
+        // If any of the input checkboxes changes, check the state of the continue button
+        $("input").change(updateContinue);
+      });
+
+      // Enables the continue button if all the checkboxes are ON. Disables the button otherwise.
+      function updateContinue() {
+        $("#continue").prop('disabled', $("input").length !== $("input:checked").length);
+      }
+
+      // Updates the link to the experiment.
+      function updateLink() {
+        // Retrieve the html params
+        var params = decodeURIComponent(window.location.search.substring(1));
+
+        // Concatenate the html params
+        var href = "experiment.html".concat("?").concat(params);
+
+        $("#start_experiment").attr("href", href);
+      }
+
+
+    </script>
+
+
   </body>
 </html>
