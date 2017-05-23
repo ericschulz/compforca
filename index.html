@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+    <!-- Meta tags -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="Francisco QV and Eric Schulz">
+    <meta charset="utf-8">
+
+    <!-- Libraries -->
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.10.4/jquery-ui.min.js"></script>
+
+    <link href="https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+
+    <title>Experiment</title>
+  </head>
+
+  <body>
+
+    <div class="container">
+
+      <img src="ucl-logo.jpg">
+
+      <div class="page-header">
+        <h2>Information Sheet for Participants in Research Studies</h2>
+      </div>
+
+      <h4>Title of the project:</h4>
+      <p>A Bayesian Approach to Judgmental Forecasting</p>
+      <p>This study has been approved by the Experimental Psychology Research
+        Department’s Ethics Chair, [Project ID No]: <strong>EP/2015/8</strong></p>
+
+      <hr>
+
+      <h4>Name, Address and Contact Details of Investigators:</h4>
+      <p>
+        Francisco Quiroga,
+        Dr. Eric Schulz,
+        Prof. Nigel Harvey<br />
+        Department of Experimental Psychology <br />
+        University College London  <br />
+        Gower Street <br />
+        London WC1E 6BT <br />
+        United Kingdom  <br />
+        +44 (0)20 7679 5387 <br />
+      </p>
+
+      <hr>
+
+      <h4>Project</h4>
+      <div class="row">
+        <div class="col-md-8">
+          <p>
+            We would like to invite you to participate in this research project
+            directed by researchers at UCL. You should only participate if you want
+            to; choosing not to take part will not disadvantage you in any way.
+            Before you decide whether you want to take part, it is important for you
+            to read the following information carefully and discuss it with others
+            if you wish. Ask us if there is anything that is not clear or if you
+            would like more information (francisco.quiroga-vergara.16@ucl.ac.uk).
+            In this online study, we will show you an empty plot where you will
+            have to graph your prediction for different variables. All data will be
+            handled according to the Data Protection Act 1998 and will be kept
+            anonymous. Only UCL researchers working with Dr. Schulz or Prof. Harvey
+            will analyze these data. It is up to you to decide whether or not to
+            take part. If you decide to take part you will be given this information
+            sheet to keep and be asked to sign a consent form. If you decide to take
+            part you are still free to withdraw at any time by closing your browser.
+            You may wish to print this information sheet for your records.
+          </p>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="page-header">
+        <h2>Informed Consent Form for Participants in Research Studies</h2>
+      </div>
+
+      <p>
+        Title of Project: A Bayesian Approach to Judgmental Forecasting
+        <br />
+        This study has been approved by Cognitive, Perceptual and Behavioural
+        Sciences Research Department’s Ethics Chair [Project ID No]: <strong>CPB/2010/013</strong>
+      </p>
+
+      <hr>
+
+      <h4>Participant’s Statement</h4>
+
+      <p>By ticking the appropriate boxes below, I agree that I have:</p>
+
+      <div class="row">
+        <div class="col-md-8">
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Read the information sheet.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Had the opportunity to ask questions and discuss the study.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Received satisfactory answers to all my questions or have been
+              advised of an individual to contact for answers to pertinent
+              questions about the research and my rights as a participant and
+              whom to contact in the event of a research-related injury.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Understood that I have the right to withdraw at any stage simply
+              by closing my browser.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Understood that I consent to the processing of my personal
+              information for the purposes of this study only and that any such
+              information will be treated as strictly confidential and handled
+              in accordance with the provisions of the Data Protection Act 1998.
+            </label>
+          </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" value="">
+              Understood that, by clicking ‘continue’, I consent to participate
+              in this study.
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTINUE BUTTON -->
+      <div class="row">
+        <a id="start_experiment">
+          <button type="button" disabled id="continue" class="btn btn-primary"
+          style="margin-bottom:40px;">Continue</button>
+        </a>
+      </div>
+
+    </div> <!-- end container -->
+
+    <script>
+      $(function() {
+        updateLink();
+
+        // If any of the input checkboxes changes, check the state of the continue button
+        $("input").change(updateContinue);
+      });
+
+      // Enables the continue button if all the checkboxes are ON. Disables the button otherwise.
+      function updateContinue() {
+        $("#continue").prop('disabled', $("input").length !== $("input:checked").length);
+      }
+
+      // Updates the link to the experiment.
+      function updateLink() {
+        // Retrieve the html params
+        var params = decodeURIComponent(window.location.search.substring(1));
+
+        // Concatenate the html params
+        var href = "experiment.html".concat("?").concat(params);
+
+        $("#start_experiment").attr("href", href);
+      }
+
+
+    </script>
+
+
+  </body>
+</html>
