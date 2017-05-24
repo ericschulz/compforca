@@ -603,7 +603,7 @@ function getSubConditions() {
   }
 
   // Now shuffle it:
-  subc = shuffle(subc)
+  subc = shuffle(subc);
 
   return subc;
 }
