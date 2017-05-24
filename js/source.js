@@ -192,9 +192,9 @@ function sendData() {
   var now = $.now();
 
   database.push({
-    "userId": getUserId(),
-    "sessionId": getSessionId(),
-    "now": now,
+    "userId": getUserId().toString(),
+    "sessionId": getSessionId().toString(),
+    "now": now.toString(),
     "datetime": (new Date(now)).toString(),
     "gender": getGender().toString(),
     "age": getAge().toString(),
@@ -500,12 +500,22 @@ function compareItems(item1, item2) {
 // Returns the user id
 function getUserId() {
   //https://panchoqv.github.io/compforcaQV/?prolific_pid={{%PROLIFIC_PID%}}&session_id={{%SESSION_ID%}}
-  return getUrlParameter("prolific_pid");
+  return undefinedStringify(getUrlParameter("prolific_pid"));
 }
 
 // Returns the session id
 function getSessionId() {
-  return getUrlParameter("session_id");
+  return undefinedStringify(getUrlParameter("session_id"));
+}
+
+// If the object is undefined, it returns "undefined"
+function undefinedStringify(o){
+  if(o === undefined){
+    return "undefined";
+  }
+  else {
+    return o;
+  }
 }
 
 // Returns the acceptance range that is used to evaluate when a point is deleted.
