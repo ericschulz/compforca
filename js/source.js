@@ -267,9 +267,9 @@ function addDatesToFirstYearPredictions(values) {
 
 // Returns the first year values of the current variable
 function getFirstYearValues() {
-  if (getCurrentPageSubcondition() == 1) { return getLinearUp(getInitialValue()); }
+  if (getCurrentPageSubcondition() == 1) { return getLinearUp(getInitialValue(), 1); }
   else if (getCurrentPageSubcondition() == 2) { return getStable(getInitialValue()); }
-  else if (getCurrentPageSubcondition() == 3) { return getLinearDown(getInitialValue()); }
+  else if (getCurrentPageSubcondition() == 3) { return getLinearDown(getInitialValue(), 1); }
 }
 
 // Returns the initial items to be shown on the graph
@@ -608,7 +608,7 @@ function getSubConditions() {
   return subc;
 }
 
-function getLinearUp(base, slopeScale = 1){
+function getLinearUp(base, slopeScale){
   var values = [];
 
   var scale = 0.05 * base; // The scale is 5% of the base
@@ -627,7 +627,7 @@ function getStable(base){
   return getLinearUp(base, 0);
 }
 
-function getLinearDown(base, slopeScale = 1){
+function getLinearDown(base, slopeScale){
   return getLinearUp(base, slopeScale * -1);
 }
 
