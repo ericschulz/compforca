@@ -2,7 +2,7 @@ var fixedRandom = Math.random();
 var pageIndex = 0;
 var pagesNames = [];
 
-var condition = shuffle(['temperature', 'sales', 'facebook_friends', 'rain','gym_memberships', 'wage']);
+var condition = shuffle(["temperature", "sales", "facebook_friends", "rain","gym_memberships", "wage"]);
 var subCondition = getSubConditions();
 
 historicalData = [];
@@ -20,7 +20,7 @@ function toggleInstructions() {
 }
 
 function hideShow(hideSelector, showSelector){
-  // Hides the 'hideSelector' element(s) and shows (fades in) the 'showSelector' element(s)
+  // Hides the "hideSelector" element(s) and shows (fades in) the "showSelector" element(s)
   $(hideSelector).hide();
   $(showSelector).fadeIn();
 }
@@ -42,19 +42,19 @@ function nextPage(){
   pageIndex++;
 
   if(getExperimentStage() === 0) {
-    hideShow('#page1', '#page2');
+    hideShow("#page1", "#page2");
   }
   else if (getExperimentStage() == 1 || getExperimentStage() == 2) {
     $("#instructions").hide();
-    $('#canvasPage').fadeIn();
+    $("#canvasPage").fadeIn();
     disableContinueButton();
 
     // First page of section 2
     if(pageIndex == 2 + getConditionsCount()) {
       $("#instructions").show();
       window.scrollTo(0,0);
-      $('#instructions_title').text('Instructions - PART 2');
-      $('#second_section_instruction').show();
+      $("#instructions_title").text("Instructions - PART 2");
+      $("#second_section_instruction").show();
     }
 
     // Create, show, and save graph
@@ -67,9 +67,9 @@ function nextPage(){
   }
   // Demographics page
   else if (getExperimentStage() == 3) {
-    $('#demographicsPage').fadeIn();
-    $('#page2').hide();
-    $('#canvasPage').hide();
+    $("#demographicsPage").fadeIn();
+    $("#page2").hide();
+    $("#canvasPage").hide();
     disableContinueButton();
   }
   // Thank you page
@@ -77,24 +77,24 @@ function nextPage(){
     // Save and send all the information to the server
     sendData();
 
-    // Hide the demographics' page and the continue button
-    $('#demographicsPage').hide();
-    $('#continueButtonPage').hide();
+    // Hide the demographics" page and the continue button
+    $("#demographicsPage").hide();
+    $("#continueButtonPage").hide();
     disableContinueButton();
 
     // Show the final page
-    $('#thankYouPage').fadeIn();
+    $("#thankYouPage").fadeIn();
   }
 }
 
 // Play graph
 function showPlayGraph() {
-  var container = document.getElementById('play_graph');
+  var container = document.getElementById("play_graph");
 
   items = [
-    {x: '0000-01-01', y: 10},
-    {x: '0000-06-01', y: 20},
-    {x: '0000-12-01', y: 30}
+    {x: "0000-01-01", y: 10},
+    {x: "0000-06-01", y: 20},
+    {x: "0000-12-01", y: 30}
   ];
 
   var dataset = new vis.DataSet(items);
@@ -102,8 +102,8 @@ function showPlayGraph() {
   var options = {
     moveable: false,
     zoomable: false,
-    min:  '0000-01-01',
-    max:  '0004-01-05',
+    min:  "0000-01-01",
+    max:  "0004-01-05",
 
     dataAxis: {
         left: {
@@ -112,10 +112,10 @@ function showPlayGraph() {
         }
     },
 
-    timeAxis: {scale: 'month', step: 2},
+    timeAxis: {scale: "month", step: 2},
 
-    start:'0000-01-01',
-    end:  '0004-01-05'
+    start:"0000-01-01",
+    end:  "0004-01-05"
   };
 
   // Show and return Graph2d object
@@ -126,9 +126,9 @@ function showPlayGraph() {
 
 // Graph
 function showGraph(pageName) {
-  var container = document.getElementById('graph');
+  var container = document.getElementById("graph");
 
-  $('#specificInstructions').html(getSpecificInstructions);
+  $("#specificInstructions").html(getSpecificInstructions);
 
   items = getInitialItems();
 
@@ -139,8 +139,8 @@ function showGraph(pageName) {
     zoomable: false,
     //zoomMin: 315360000000,
     //zoomMax: 315360000000,
-    min:  '0000-01-01',
-    max:  '0004-01-05',
+    min:  "0000-01-01",
+    max:  "0004-01-05",
 
     dataAxis: {
         left: {
@@ -151,13 +151,13 @@ function showGraph(pageName) {
 
     interpolation: {
       enabled: true,
-      parametrization: 'centripetal'
+      parametrization: "centripetal"
     },
 
-    timeAxis: {scale: 'month', step: 2},
+    timeAxis: {scale: "month", step: 2},
 
-    start:'0000-01-01',
-    end:  '0004-01-05'
+    start:"0000-01-01",
+    end:  "0004-01-05"
   };
 
   // Updates the labels
@@ -176,12 +176,12 @@ function saveItems() {
   var now = $.now();
 
   var pageData = {
-    'now': now,
-    'datetime': (new Date(now)).toString(),
-    'pageIndex': pageIndex,
-    'condition': getCurrentCondition(),
-    'subCondition': getCurrentPageSubcondition(),
-    'items': items
+    "now": now,
+    "datetime": (new Date(now)).toString(),
+    "pageIndex": pageIndex,
+    "condition": getCurrentCondition(),
+    "subCondition": getCurrentPageSubcondition(),
+    "items": items
   };
 
   historicalData = historicalData.concat(pageData);
@@ -192,23 +192,23 @@ function sendData() {
   var now = $.now();
 
   database.push({
-    'userId': getUserId(),
-    'sessionId': getSessionId(),
-    'now': now,
-    'datetime': (new Date(now)).toString(),
-    'gender': getGender().toString(),
-    'age': getAge().toString(),
-    'historicalData': historicalData
+    "userId": getUserId(),
+    "sessionId": getSessionId(),
+    "now": now,
+    "datetime": (new Date(now)).toString(),
+    "gender": getGender().toString(),
+    "age": getAge().toString(),
+    "historicalData": historicalData
   });
 }
 
 function getYAxisRange() {
-  if (getCurrentCondition() == 'temperature') { return [-10, 40]; }
-  else if (getCurrentCondition() == 'sales') { return [0, 5000]; }
-  else if (getCurrentCondition() == 'facebook_friends') { return [0, 1000]; }
-  else if (getCurrentCondition() == 'rain') { return [0, 100]; }
-  else if (getCurrentCondition() == 'gym_memberships') { return [0, 50]; }
-  else if (getCurrentCondition() == 'wage') { return [0, 50]; }
+  if (getCurrentCondition() == "temperature") { return [-10, 40]; }
+  else if (getCurrentCondition() == "sales") { return [0, 5000]; }
+  else if (getCurrentCondition() == "facebook_friends") { return [0, 1000]; }
+  else if (getCurrentCondition() == "rain") { return [0, 100]; }
+  else if (getCurrentCondition() == "gym_memberships") { return [0, 50]; }
+  else if (getCurrentCondition() == "wage") { return [0, 50]; }
   else { return [0, 100]; }
 }
 
@@ -223,40 +223,40 @@ function getMinMax(range) {
 }
 
 function getYAxisLabel() {
-  if (getCurrentCondition() == 'temperature') { return 'Temperature (Celsius)'; }
-  else if (getCurrentCondition() == 'sales') { return 'Sales (Units)'; }
-  else if (getCurrentCondition() == 'facebook_friends') { return 'Number of total Facebook friends'; }
-  else if (getCurrentCondition() == 'rain') { return 'Probability of a rainy day (%)'; }
-  else if (getCurrentCondition() == 'gym_memberships') { return 'Number of total gym members'; }
-  else if (getCurrentCondition() == 'wage') { return 'Hourly wage (US dollars)'; }
+  if (getCurrentCondition() == "temperature") { return "Temperature (Celsius)"; }
+  else if (getCurrentCondition() == "sales") { return "Sales (Units)"; }
+  else if (getCurrentCondition() == "facebook_friends") { return "Number of total Facebook friends"; }
+  else if (getCurrentCondition() == "rain") { return "Probability of a rainy day (%)"; }
+  else if (getCurrentCondition() == "gym_memberships") { return "Number of total gym members"; }
+  else if (getCurrentCondition() == "wage") { return "Hourly wage (US dollars)"; }
 }
 
 // Returns the initial values for the graphs of the first section of the experiment
 function getInitialValue() {
   // If condition
-  if (getCurrentCondition() == 'temperature') return 15;
+  if (getCurrentCondition() == "temperature") return 15;
 
-  else if (getCurrentCondition() == 'sales') return 2500;
+  else if (getCurrentCondition() == "sales") return 2500;
 
-  else if (getCurrentCondition() == 'facebook_friends') return 200;
+  else if (getCurrentCondition() == "facebook_friends") return 200;
 
-  else if (getCurrentCondition() == 'rain') return 30;
+  else if (getCurrentCondition() == "rain") return 30;
 
-  else if (getCurrentCondition() == 'gym_memberships') return 30;
+  else if (getCurrentCondition() == "gym_memberships") return 30;
 
-  else if (getCurrentCondition() == 'wage') return 20;
+  else if (getCurrentCondition() == "wage") return 20;
 }
 
 // Converts the values into an items object by adding dates
 function addDatesToFirstYearPredictions(values) {
   return [
-    {x: '0000-01-01', y: values[0]},
-    {x: '0000-03-01', y: values[1]},
-    {x: '0000-05-01', y: values[2]},
-    {x: '0000-07-01', y: values[3]},
-    {x: '0000-09-01', y: values[4]},
-    {x: '0000-11-01', y: values[5]},
-    {x: '0001-01-01', y: values[6]}
+    {x: "0000-01-01", y: values[0]},
+    {x: "0000-03-01", y: values[1]},
+    {x: "0000-05-01", y: values[2]},
+    {x: "0000-07-01", y: values[3]},
+    {x: "0000-09-01", y: values[4]},
+    {x: "0000-11-01", y: values[5]},
+    {x: "0001-01-01", y: values[6]}
   ];
 }
 
@@ -270,7 +270,7 @@ function getFirstYearValues() {
 // Returns the initial items to be shown on the graph
 function getInitialItems() {
   if(getExperimentStage() == 1) {
-    return [{x: '0005-01-01', y: getInitialValue()}];
+    return [{x: "0005-01-01", y: getInitialValue()}];
   }
   else if(getExperimentStage() == 2) {
     return getFirstYearValues();
@@ -296,21 +296,21 @@ function getExperimentStage() {
 }
 
 function getSpecificInstructions() {
-  var text = ''
+  var text = ""
 
-  if (getCurrentCondition() == 'temperature') text = 'Please draw the <strong>weather forecast</strong> for a large city';
-  else if (getCurrentCondition() == 'sales') text = 'Please draw the <strong>sales forecast</strong> for a large company';
-  else if (getCurrentCondition() == 'facebook_friends') text = 'Please draw a graph showing the <strong>number of total Facebook friends</strong> of a 25 year old male';
-  else if (getCurrentCondition() == 'rain') text = 'Please draw the <strong>probability of a rainy day</strong> for a large city';
-  else if (getCurrentCondition() == 'gym_memberships') text = 'Please draw the <strong>number gym members</strong> of a small gym';
-  else if (getCurrentCondition() == 'wage') text = 'Please draw the <strong>hourly wage</strong> of a 25 year old male';
+  if (getCurrentCondition() == "temperature") text = "Please draw the <strong>weather forecast</strong> for a large city";
+  else if (getCurrentCondition() == "sales") text = "Please draw the <strong>sales forecast</strong> for a large company";
+  else if (getCurrentCondition() == "facebook_friends") text = "Please draw a graph showing the <strong>number of total Facebook friends</strong> of a 25 year old male";
+  else if (getCurrentCondition() == "rain") text = "Please draw the <strong>probability of a rainy day</strong> for a large city";
+  else if (getCurrentCondition() == "gym_memberships") text = "Please draw the <strong>number gym members</strong> of a small gym";
+  else if (getCurrentCondition() == "wage") text = "Please draw the <strong>hourly wage</strong> of a 25 year old male";
 
 
   if(getExperimentStage() == 1) {
-    text = text.concat('.');
+    text = text.concat(".");
   }
   else if(getExperimentStage() == 2) {
-    text = text.concat(', given the information for the first year.')
+    text = text.concat(", given the information for the first year.")
   }
 
   return text;
@@ -330,10 +330,10 @@ function getConditionsCount() {
 
 function graphOnClick(params) {
   // Clicked value
-  var value = params['value'][0];
+  var value = params["value"][0];
 
   // Clicked date
-  datetime = params['time'];
+  datetime = params["time"];
   timeString =  getTimeString(datetime)
 
   console.log(timeString)
@@ -362,12 +362,12 @@ function graphOnClick(params) {
   updateItems(items);
 }
 
-// Removes a point from the points' array
+// Removes a point from the points" array
 function removePoint(index) {
   if(index >= 0) {
     // If the experiment is on its second stage, then the index must be 6 or larger
     if(!(getExperimentStage() == 2 && index <= 6)) {
-      // Remove the item (remove/delete 1 element in position 'index' from 'items')
+      // Remove the item (remove/delete 1 element in position "index" from "items")
       items.splice(index, 1)
     }
   }
@@ -382,13 +382,13 @@ function removeLastPoint() {
 
 // Returns true if the year of the item is not "000-x"
 function nonNegativeYear(item) {
-  return item[0].x.split('-')[0] != '000';
+  return item[0].x.split("-")[0] != "000";
 }
 
 // Returns true when the item is of the first year
 // Receives an array of objects, with only one item
 function firstYear(item) {
-  return item[0].x.split('-')[0] == '0000';
+  return item[0].x.split("-")[0] == "0000";
 }
 
 function updateItems(items) {
@@ -401,19 +401,19 @@ function updateItems(items) {
 
 
 // Checks whether the items attain the rules
-// Returns a boolean's array
+// Returns a boolean"s array
 function checkItems(items) {
   var firstMonth = false;
   var lastMonth = false;
 
   for(i=0; i < items.length; i++) {
-    dateElements = items[i].x.split('-')
+    dateElements = items[i].x.split("-")
 
-    firstMonth = firstMonth || (dateElements[0] == '0000' && dateElements[1] == '01')
+    firstMonth = firstMonth || (dateElements[0] == "0000" && dateElements[1] == "01")
 
-    lastMonth = lastMonth || (dateElements[0] == '0003' && dateElements[1] == '12')
+    lastMonth = lastMonth || (dateElements[0] == "0003" && dateElements[1] == "12")
 
-    lastMonth = lastMonth || (dateElements[0] == '0004' && dateElements[1] == '01')
+    lastMonth = lastMonth || (dateElements[0] == "0004" && dateElements[1] == "01")
   }
 
   return [firstMonth, lastMonth]
@@ -421,21 +421,21 @@ function checkItems(items) {
 
 function updateLabels(booleanArray) {
 
-  // Show or hide the 'checks' for the messages
+  // Show or hide the "checks" for the messages
   if(booleanArray[0]) {
-    $('#firstMonth').fadeIn();
+    $("#firstMonth").fadeIn();
   }
   else {
-    $('#firstMonth').fadeOut();
+    $("#firstMonth").fadeOut();
   }
   if(booleanArray[1]) {
-    $('#lastMonth').fadeIn();
+    $("#lastMonth").fadeIn();
   }
   else {
-    $('#lastMonth').fadeOut();
+    $("#lastMonth").fadeOut();
   }
 
-  // Enable the 'Continue' button when both conditions are OK
+  // Enable the "Continue" button when both conditions are OK
   if(booleanArray[0] && booleanArray[1]){
     enableContinueButton();
   }
@@ -444,27 +444,27 @@ function updateLabels(booleanArray) {
 
 // Returns a datetime written as "yyyy-mm-dd"
 function getTimeString(datetime) {
-  year = '000'+ (datetime.getYear()+1900)
+  year = "000"+ (datetime.getYear()+1900)
 
   month = addZero(datetime.getMonth()+1)
 
   day = addZero(datetime.getDate())
 
-  return (year + '-' + month + '-' + day)
+  return (year + "-" + month + "-" + day)
 }
 
 function addZero(value) {
   valueString = value.toString();
 
   if(valueString.length == 1) {
-    valueString = '0' + valueString;
+    valueString = "0" + valueString;
   }
 
   return valueString;
 }
 
 // Returns the index of a certain element in an array
-// The element and the array are 'items' for Graph2d
+// The element and the array are "items" for Graph2d
 function indexOf(element, array) {
 
   for(i=0; i<array.length; i++) {
@@ -477,8 +477,8 @@ function indexOf(element, array) {
 
 // Returns true if both dates are equal
 function compareItems(item1, item2) {
-  components1 = item1.x.split('-');
-  components2 = item2.x.split('-');
+  components1 = item1.x.split("-");
+  components2 = item2.x.split("-");
 
   equalYears = components1[0] == components2[0]
   equalMonths = components1[1] == components2[1]
@@ -495,12 +495,12 @@ function compareItems(item1, item2) {
 // Returns the user id
 function getUserId() {
   //https://panchoqv.github.io/compforcaQV/?prolific_pid={{%PROLIFIC_PID%}}&session_id={{%SESSION_ID%}}
-  return getUrlParameter('prolific_pid');
+  return getUrlParameter("prolific_pid");
 }
 
 // Returns the session id
 function getSessionId() {
-  return getUrlParameter('session_id');
+  return getUrlParameter("session_id");
 }
 
 // Returns the acceptance range that is used to evaluate when a point is deleted.
@@ -540,12 +540,12 @@ function cloneObject(object) {
 // It returns the URL GET parameter indicated by (string) sParam
 var getUrlParameter = function getUrlParameter(sParam) {
     var sPageURL = decodeURIComponent(window.location.search.substring(1)),
-        sURLVariables = sPageURL.split('&'),
+        sURLVariables = sPageURL.split("&"),
         sParameterName,
         i;
 
     for (i = 0; i < sURLVariables.length; i++) {
-        sParameterName = sURLVariables[i].split('=');
+        sParameterName = sURLVariables[i].split("=");
 
         if (sParameterName[0] === sParam) {
             return sParameterName[1] === undefined ? true : sParameterName[1];
@@ -555,7 +555,7 @@ var getUrlParameter = function getUrlParameter(sParam) {
 
 
 // Check the demographics data when the form changes.
-$('#demographics').change(function(){
+$("#demographics").change(function(){
   // If the data is full, then enable the Continue button
   var full = (getAge() !== undefined) && (getGender() !== undefined)
 
@@ -569,21 +569,21 @@ $('#demographics').change(function(){
 
 // Activate the Continue button
 function enableContinueButton() {
-  $('button[name=continue]').prop('disabled', false);
+  $("button[name=continue]").prop("disabled", false);
 }
 
 function disableContinueButton() {
-  $('button[name=continue]').prop('disabled', true);
+  $("button[name=continue]").prop("disabled", true);
 }
 
-// Returns the age on the demographics' form
+// Returns the age on the demographics" form
 function getAge() {
-  return $('input[name=age]:checked', '#demographics').val();
+  return $("input[name=age]:checked", "#demographics").val();
 }
 
-// Returns the gender on the demographics' form
+// Returns the gender on the demographics" form
 function getGender() {
-  return $('input[name=gender]:checked', '#demographics').val();
+  return $("input[name=gender]:checked", "#demographics").val();
 }
 
 function getSubConditions() {
