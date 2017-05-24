@@ -223,28 +223,33 @@ function getMinMax(range) {
 }
 
 function getYAxisLabel() {
-  if (getCurrentCondition() == "temperature") { return "Temperature (Celsius)"; }
+  if (getCurrentCondition() == "temperature"){ return "Temperature (Celsius)"; }
+
   else if (getCurrentCondition() == "sales") { return "Sales (Units)"; }
+
   else if (getCurrentCondition() == "facebook_friends") { return "Number of total Facebook friends"; }
+
   else if (getCurrentCondition() == "rain") { return "Probability of a rainy day (%)"; }
+
   else if (getCurrentCondition() == "gym_memberships") { return "Number of total gym members"; }
+
   else if (getCurrentCondition() == "wage") { return "Hourly wage (US dollars)"; }
 }
 
 // Returns the initial values for the graphs of the first section of the experiment
 function getInitialValue() {
   // If condition
-  if (getCurrentCondition() == "temperature") return 15;
+  if (getCurrentCondition() == "temperature") { return 15; }
 
-  else if (getCurrentCondition() == "sales") return 2500;
+  else if (getCurrentCondition() == "sales") { return 2500; }
 
-  else if (getCurrentCondition() == "facebook_friends") return 200;
+  else if (getCurrentCondition() == "facebook_friends") { return 200; }
 
-  else if (getCurrentCondition() == "rain") return 30;
+  else if (getCurrentCondition() == "rain") { return 30; }
 
-  else if (getCurrentCondition() == "gym_memberships") return 30;
+  else if (getCurrentCondition() == "gym_memberships") { return 30; }
 
-  else if (getCurrentCondition() == "wage") return 20;
+  else if (getCurrentCondition() == "wage") { return 20; }
 }
 
 // Converts the values into an items object by adding dates
@@ -262,9 +267,9 @@ function addDatesToFirstYearPredictions(values) {
 
 // Returns the first year values of the current variable
 function getFirstYearValues() {
-  if (getCurrentPageSubcondition() == 1) return getLinearUp(getInitialValue());
-  else if (getCurrentPageSubcondition() == 2) return getStable(getInitialValue());
-  else if (getCurrentPageSubcondition() == 3) return getLinearDown(getInitialValue());
+  if (getCurrentPageSubcondition() == 1) { return getLinearUp(getInitialValue()); }
+  else if (getCurrentPageSubcondition() == 2) { return getStable(getInitialValue()); }
+  else if (getCurrentPageSubcondition() == 3) { return getLinearDown(getInitialValue()); }
 }
 
 // Returns the initial items to be shown on the graph
@@ -288,7 +293,7 @@ function getExperimentStage() {
     return 2;
   }
   else if (pageIndex == 2 + 2 * getConditionsCount()) {
-    return 3
+    return 3;
   }
   else {
     return 4;
@@ -296,21 +301,21 @@ function getExperimentStage() {
 }
 
 function getSpecificInstructions() {
-  var text = ""
+  var text = "";
 
-  if (getCurrentCondition() == "temperature") text = "Please draw the <strong>weather forecast</strong> for a large city";
-  else if (getCurrentCondition() == "sales") text = "Please draw the <strong>sales forecast</strong> for a large company";
-  else if (getCurrentCondition() == "facebook_friends") text = "Please draw a graph showing the <strong>number of total Facebook friends</strong> of a 25 year old male";
-  else if (getCurrentCondition() == "rain") text = "Please draw the <strong>probability of a rainy day</strong> for a large city";
-  else if (getCurrentCondition() == "gym_memberships") text = "Please draw the <strong>number gym members</strong> of a small gym";
-  else if (getCurrentCondition() == "wage") text = "Please draw the <strong>hourly wage</strong> of a 25 year old male";
+  if (getCurrentCondition() == "temperature") { text = "Please draw the <strong>weather forecast</strong> for a large city"; }
+  else if (getCurrentCondition() == "sales") { text = "Please draw the <strong>sales forecast</strong> for a large company"; }
+  else if (getCurrentCondition() == "facebook_friends") { text = "Please draw a graph showing the <strong>number of total Facebook friends</strong> of a 25 year old male"; }
+  else if (getCurrentCondition() == "rain") { text = "Please draw the <strong>probability of a rainy day</strong> for a large city"; }
+  else if (getCurrentCondition() == "gym_memberships") { text = "Please draw the <strong>number gym members</strong> of a small gym"; }
+  else if (getCurrentCondition() == "wage") { text = "Please draw the <strong>hourly wage</strong> of a 25 year old male"; }
 
 
   if(getExperimentStage() == 1) {
     text = text.concat(".");
   }
   else if(getExperimentStage() == 2) {
-    text = text.concat(", given the information for the first year.")
+    text = text.concat(", given the information for the first year.");
   }
 
   return text;
@@ -334,9 +339,9 @@ function graphOnClick(params) {
 
   // Clicked date
   datetime = params["time"];
-  timeString =  getTimeString(datetime)
+  timeString =  getTimeString(datetime);
 
-  console.log(timeString)
+  console.log(timeString);
 
   // Create an items dataset
   newItem = [
@@ -344,7 +349,7 @@ function graphOnClick(params) {
   ];
 
   // Searches for newItem[0] in items, and returns its index
-  var index = indexOf(newItem[0], items)
+  var index = indexOf(newItem[0], items);
 
   // If the item was found
   if(index >= 0) {
@@ -354,7 +359,7 @@ function graphOnClick(params) {
   else {
     // If the experiment is on its second stage and the item is first year, the item shouldnt be added
     if(!( getExperimentStage() == 2 && firstYear(newItem) ) && nonNegativeYear(newItem)) {
-      items = items.concat(newItem)
+      items = items.concat(newItem);
     }
   }
 
@@ -368,7 +373,7 @@ function removePoint(index) {
     // If the experiment is on its second stage, then the index must be 6 or larger
     if(!(getExperimentStage() == 2 && index <= 6)) {
       // Remove the item (remove/delete 1 element in position "index" from "items")
-      items.splice(index, 1)
+      items.splice(index, 1);
     }
   }
 }
@@ -393,10 +398,10 @@ function firstYear(item) {
 
 function updateItems(items) {
   // Set the items
-  graph.setItems(items)
+  graph.setItems(items);
 
   // Check the items and update the labels
-  updateLabels(checkItems(items))
+  updateLabels(checkItems(items));
 }
 
 
@@ -406,17 +411,17 @@ function checkItems(items) {
   var firstMonth = false;
   var lastMonth = false;
 
-  for(i=0; i < items.length; i++) {
-    dateElements = items[i].x.split("-")
+  for(var i=0; i < items.length; i++) {
+    dateElements = items[i].x.split("-");
 
-    firstMonth = firstMonth || (dateElements[0] == "0000" && dateElements[1] == "01")
+    firstMonth = firstMonth || (dateElements[0] == "0000" && dateElements[1] == "01");
 
-    lastMonth = lastMonth || (dateElements[0] == "0003" && dateElements[1] == "12")
+    lastMonth = lastMonth || (dateElements[0] == "0003" && dateElements[1] == "12");
 
-    lastMonth = lastMonth || (dateElements[0] == "0004" && dateElements[1] == "01")
+    lastMonth = lastMonth || (dateElements[0] == "0004" && dateElements[1] == "01");
   }
 
-  return [firstMonth, lastMonth]
+  return [firstMonth, lastMonth];
 }
 
 function updateLabels(booleanArray) {
@@ -444,13 +449,13 @@ function updateLabels(booleanArray) {
 
 // Returns a datetime written as "yyyy-mm-dd"
 function getTimeString(datetime) {
-  year = "000"+ (datetime.getYear()+1900)
+  year = "000"+ (datetime.getYear()+1900);
 
-  month = addZero(datetime.getMonth()+1)
+  month = addZero(datetime.getMonth()+1);
 
-  day = addZero(datetime.getDate())
+  day = addZero(datetime.getDate());
 
-  return (year + "-" + month + "-" + day)
+  return (year + "-" + month + "-" + day);
 }
 
 function addZero(value) {
@@ -469,7 +474,7 @@ function indexOf(element, array) {
 
   for(i=0; i<array.length; i++) {
     // If the items are equivalent, return the index
-    if(compareItems(element, array[i])) return i
+    if(compareItems(element, array[i])) return i;
   }
 
   return -1;
@@ -480,16 +485,16 @@ function compareItems(item1, item2) {
   components1 = item1.x.split("-");
   components2 = item2.x.split("-");
 
-  equalYears = components1[0] == components2[0]
-  equalMonths = components1[1] == components2[1]
-  equalDays = Math.abs(components1[2] - components2[2]) <= 10 // Less than X days of difference
+  equalYears = components1[0] == components2[0];
+  equalMonths = components1[1] == components2[1];
+  equalDays = Math.abs(components1[2] - components2[2]) <= 10; // Less than X days of difference
 
   // The range of acceptance depends on the Y variable
   var range = getAcceptanceRange();
 
-  equalY = Math.abs(item1.y - item2.y) <= range
+  equalY = Math.abs(item1.y - item2.y) <= range;
 
-  return equalYears && equalMonths && equalDays && equalY
+  return equalYears && equalMonths && equalDays && equalY;
 }
 
 // Returns the user id
