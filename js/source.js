@@ -648,22 +648,6 @@ function getLinearDown(base, slopeScale){
   return getLinearUp(base, slopeScale * -1);
 }
 
-// Changes the months labels to: {J, F, M, ...}
-function changeMonthsLabels() {
-  $(".vis-text.vis-minor.vis-january").text("J");
-  $(".vis-text.vis-minor.vis-february").text("F");
-  $(".vis-text.vis-minor.vis-march").text("M");
-  $(".vis-text.vis-minor.vis-april").text("A");
-  $(".vis-text.vis-minor.vis-may").text("M");
-  $(".vis-text.vis-minor.vis-june").text("J");
-  $(".vis-text.vis-minor.vis-july").text("J");
-  $(".vis-text.vis-minor.vis-august").text("A");
-  $(".vis-text.vis-minor.vis-september").text("S");
-  $(".vis-text.vis-minor.vis-october").text("O");
-  $(".vis-text.vis-minor.vis-november").text("N");
-  $(".vis-text.vis-minor.vis-december").text("D");
-}
-
 // Returns seven random numbers, from -0.5 to 0.5
 // Generated in Python 3.5.2 by "random.random() - 0.5" from the random.py library
 function getSevenRandom() {
