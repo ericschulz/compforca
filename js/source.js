@@ -12,7 +12,7 @@ var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
   showPlayGraph();
-  //debug(13);
+  debug(2);
 });
 
 function toggleInstructions() {
@@ -112,7 +112,7 @@ function showPlayGraph() {
         }
     },
 
-    timeAxis: {scale: "month", step: 2},
+    timeAxis: {scale: "month", step: 1},
 
     start:"0000-01-01",
     end:  "0004-01-05"
@@ -137,8 +137,6 @@ function showGraph(pageName) {
   var options = {
     moveable: false,
     zoomable: false,
-    //zoomMin: 315360000000,
-    //zoomMax: 315360000000,
     min:  "0000-01-01",
     max:  "0004-01-05",
 
@@ -154,7 +152,16 @@ function showGraph(pageName) {
       parametrization: "centripetal"
     },
 
-    timeAxis: {scale: "month", step: 2},
+    timeAxis: {scale: "month", step: 1},
+
+    format: {
+      minorLabels: {
+        month:      'MMM'
+      },
+      majorLabels: {
+        month:      '[Year] YY'
+      }
+    },
 
     start:"0000-01-01",
     end:  "0004-01-05"
@@ -639,6 +646,22 @@ function getStable(base){
 
 function getLinearDown(base, slopeScale){
   return getLinearUp(base, slopeScale * -1);
+}
+
+// Changes the months labels to: {J, F, M, ...}
+function changeMonthsLabels() {
+  $(".vis-text.vis-minor.vis-january").text("J");
+  $(".vis-text.vis-minor.vis-february").text("F");
+  $(".vis-text.vis-minor.vis-march").text("M");
+  $(".vis-text.vis-minor.vis-april").text("A");
+  $(".vis-text.vis-minor.vis-may").text("M");
+  $(".vis-text.vis-minor.vis-june").text("J");
+  $(".vis-text.vis-minor.vis-july").text("J");
+  $(".vis-text.vis-minor.vis-august").text("A");
+  $(".vis-text.vis-minor.vis-september").text("S");
+  $(".vis-text.vis-minor.vis-october").text("O");
+  $(".vis-text.vis-minor.vis-november").text("N");
+  $(".vis-text.vis-minor.vis-december").text("D");
 }
 
 // Returns seven random numbers, from -0.5 to 0.5
