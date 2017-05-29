@@ -371,7 +371,7 @@ function graphOnClick(params) {
   console.log(timeString);
 
   // Create an items dataset
-  var newItem = [
+  newItem = [
     {x: timeString, y: value}
   ];
 
@@ -397,8 +397,14 @@ function addPoint(newItem) {
   // If the experiment is on its second stage and the item is first year, the item shouldnt be added
   if(!( getExperimentStage() == 2 && firstYear(newItem) ) && nonNegativeYear(newItem)) {
     // The item has to be within the acceptable value boundaries
-    if( withinValueBoundaries(newItem)) {
-      items = items.concat(newItem);
+    if( withinValueBoundaries(newItem[0]) ) {
+      // and the item is more than X days distant to the rest of the items
+      if ( moreThanXDays(newItem[0], items, 25) ) {
+        items = items.concat(newItem);
+      }
+      else {
+        //window.alert("The new point has to be at least 30 days away from the closest point.");
+      }
     }
   }
 }
@@ -420,12 +426,34 @@ function removeLastPoint() {
   updateItems(items);
 }
 
+// Returns true if the newItem is more than X days off every other item in the list
+function moreThanXDays(newItem, items, x) {
+  var moreThanThirty = true;
+
+  for(var i=0; i < items.length; i++) {
+    // Check the distance between the newItem and every other item
+    moreThanThirty = moreThanThirty && ( distanceInDays(newItem, items[i]) > x );
+  }
+
+  return moreThanThirty;
+}
+
+// Returns the distance, in months, between two items
+function distanceInDays(item1, item2) {
+  var date1 = new Date(item1.x);
+  var date2 = new Date(item2.x);
+
+  // Returns the absolute distance between the dates, in days
+  return Math.abs(date2 - date1)/1000/60/60/24;
+}
+
 // Returns true if the new point is within the acceptable value boundaries
 function withinValueBoundaries(item) {
   var lowerBound = getBounds()[0];
   var upperBound = getBounds()[1];
 
-  var value = item[0].y;
+  // Get the item's value
+  var value = item.y;
 
   return value > lowerBound && value < upperBound;
 }
@@ -743,11 +771,6 @@ function getFiveRandom() {
 
   // Randomly returns one of the random sets
   return sets[Math.floor(fixedRandom * sets.length)];
-}
-
-// Subtract the average
-function subtractAverage(array) {
-
 }
 
 // ######################### DEBUG
