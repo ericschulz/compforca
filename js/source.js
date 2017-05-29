@@ -12,7 +12,7 @@ var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
   showPlayGraph();
-  //debug(2);
+  debug(9);
 });
 
 function toggleInstructions() {
@@ -156,10 +156,10 @@ function showGraph(pageName) {
 
     format: {
       minorLabels: {
-        month:      'MMM'
+        month:      "MMM"
       },
       majorLabels: {
-        month:      '[Year] YY'
+        month:      "[Year] YY"
       }
     },
 
@@ -342,10 +342,10 @@ function getConditionsCount() {
 
 function graphOnClick(params) {
   // Clicked value
-  var value = params["value"][0];
+  var value = params.value[0];
 
   // Clicked date
-  datetime = params["time"];
+  datetime = params.time;
   timeString =  getTimeString(datetime);
 
   console.log(timeString);
@@ -450,6 +450,10 @@ function updateLabels(booleanArray) {
   // Enable the "Continue" button when both conditions are OK
   if(booleanArray[0] && booleanArray[1]){
     enableContinueButton();
+  }
+  // In any other case, disable the continue button
+  else {
+    disableContinueButton();
   }
 }
 
@@ -634,7 +638,7 @@ function getLinearUp(base, slopeScale){
 
   for(var i=0; i < 7; i++) {
     // Each value is the base + the slope*i + the random_number*scaling
-    values = values.concat( base + slope * i + getSevenRandom()[i] * scale * 4);
+    values = values.concat( base + slope * i + getNoiseArray()[i] * scale * 4); // 4
   }
 
   return addDatesToFirstYearPredictions(values);
@@ -648,37 +652,64 @@ function getLinearDown(base, slopeScale){
   return getLinearUp(base, slopeScale * -1);
 }
 
-// Returns seven random numbers, from -0.5 to 0.5
-// Generated in Python 3.5.2 by "random.random() - 0.5" from the random.py library
-function getSevenRandom() {
+// Returns a noise array for the trends
+function getNoiseArray() {
+  var fiveRandom = getFiveRandom();
+
+  var arrayAverage = getArrayAverage(fiveRandom);
+
+  // Subtract the array's average to every element
+  for(var i=0; i < fiveRandom.length; i++) {
+    fiveRandom[i] = fiveRandom[i] - arrayAverage;
+  }
+
+  // Returns the five random, each minus the array's average, and surrounded by zeroes.
+  // i.e., [0, random_1, ..., random_n, 0]
+  return [0].concat(fiveRandom).concat([0]);
+}
+
+// Returns the array's average value
+function getArrayAverage(array){
+  var sum = 0;
+
+  for(var i=0; i<array.length; i++) {
+    sum = sum + array[i];
+  }
+
+  return sum/array.length;
+}
+
+// Returns five random numbers
+// Generated in Python 3.5.2 by "random.random()" from the random.py library
+function getFiveRandom() {
   var sets =
     [
-      [ 0.16933093785196052 - 0.5,
-        0.7642726400978779 - 0.5,
-        0.59420237112108 - 0.5,
-        0.8045676111568967 - 0.5,
-        0.3616072333221285 - 0.5,
-        0.4333995695523616 - 0.5,
-        0.3448741485276291  - 0.5 ],
+      [ 0.7642726400978779,
+        0.59420237112108,
+        0.8045676111568967,
+        0.3616072333221285,
+        0.4333995695523616 ],
 
-      [ 0.2330127377152953 - 0.5,
-        0.44558333713334464 - 0.5,
-        0.7720815219200008 - 0.5,
-        0.091949620524298 - 0.5,
-        0.3371284569763776 - 0.5,
-        0.8147280055034919 - 0.5,
-        0.5571889833319483 - 0.5 ],
+      [ 0.44558333713334464,
+        0.7720815219200008,
+        0.091949620524298,
+        0.3371284569763776,
+        0.8147280055034919 ],
 
-      [ 0.015973944458846367 - 0.5,
-        0.6163862558959631 - 0.5,
-        0.04367949448727826 - 0.5,
-        0.057026095449790204 - 0.5,
-        0.040766425126964156 - 0.5,
-        0.17492704212711474 - 0.5,
-        0.08634859133712236 - 0.5 ]
+      [ 0.6163862558959631,
+        0.04367949448727826,
+        0.057026095449790204,
+        0.040766425126964156,
+        0.17492704212711474 ]
     ];
 
+  // Randomly returns one of the random sets
   return sets[Math.floor(fixedRandom * sets.length)];
+}
+
+// Subtract the average
+function subtractAverage(array) {
+
 }
 
 // ######################### DEBUG
