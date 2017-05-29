@@ -12,7 +12,7 @@ var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
   showPlayGraph();
-  debug(9);
+  //debug(9);
 });
 
 function toggleInstructions() {
@@ -261,7 +261,6 @@ function getInitialValue() {
 
 // Returns the lower and upper bound depending on the current condition
 function getBounds() {
-
   var largeNumber = 4194304;
 
   // If condition
@@ -276,6 +275,8 @@ function getBounds() {
   else if (getCurrentCondition() == "gym_memberships") { return [0, largeNumber]; }
 
   else if (getCurrentCondition() == "wage") { return [0, largeNumber]; }
+
+  else { return [-largeNumber, largeNumber]; }
 }
 
 // Converts the values into an items object by adding dates
