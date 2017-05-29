@@ -259,6 +259,25 @@ function getInitialValue() {
   else if (getCurrentCondition() == "wage") { return 20; }
 }
 
+// Returns the lower and upper bound depending on the current condition
+function getBounds() {
+
+  var largeNumber = 4194304;
+
+  // If condition
+  if (getCurrentCondition() == "temperature") { return [-273, largeNumber]; } // Absolute zero to large number (hehe)
+
+  else if (getCurrentCondition() == "sales") { return [0, largeNumber]; }
+
+  else if (getCurrentCondition() == "facebook_friends") { return [0, largeNumber]; }
+
+  else if (getCurrentCondition() == "rain") { return [0, 100]; } // Percentage
+
+  else if (getCurrentCondition() == "gym_memberships") { return [0, largeNumber]; }
+
+  else if (getCurrentCondition() == "wage") { return [0, largeNumber]; }
+}
+
 // Converts the values into an items object by adding dates
 function addDatesToFirstYearPredictions(values) {
   return [
@@ -351,7 +370,7 @@ function graphOnClick(params) {
   console.log(timeString);
 
   // Create an items dataset
-  newItem = [
+  var newItem = [
     {x: timeString, y: value}
   ];
 
@@ -364,14 +383,23 @@ function graphOnClick(params) {
   }
   // In other case, it is added
   else {
-    // If the experiment is on its second stage and the item is first year, the item shouldnt be added
-    if(!( getExperimentStage() == 2 && firstYear(newItem) ) && nonNegativeYear(newItem)) {
-      items = items.concat(newItem);
-    }
+    addPoint(newItem);
   }
 
   // Updates the items shown
   updateItems(items);
+}
+
+// Adds a new point into the items' array, as long as the new point is
+// in accordance to the rules
+function addPoint(newItem) {
+  // If the experiment is on its second stage and the item is first year, the item shouldnt be added
+  if(!( getExperimentStage() == 2 && firstYear(newItem) ) && nonNegativeYear(newItem)) {
+    // The item has to be within the acceptable value boundaries
+    if( withinValueBoundaries(newItem)) {
+      items = items.concat(newItem);
+    }
+  }
 }
 
 // Removes a point from the points" array
@@ -391,6 +419,15 @@ function removeLastPoint() {
   updateItems(items);
 }
 
+// Returns true if the new point is within the acceptable value boundaries
+function withinValueBoundaries(item) {
+  var lowerBound = getBounds()[0];
+  var upperBound = getBounds()[1];
+
+  var value = item[0].y;
+
+  return value > lowerBound && value < upperBound;
+}
 
 // Returns true if the year of the item is not "000-x"
 function nonNegativeYear(item) {
