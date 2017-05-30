@@ -3,7 +3,7 @@ var pagesNames = [];
 
 // Debug parameters
 var forcedRandomSet = -1;
-var forcedCondition = undefined;
+var forcedCondition = -1;
 var forcedSubCondition = -1;
 
 var condition = shuffle(["temperature", "sales", "facebook_friends", "rain","gym_memberships", "wage"]);
@@ -20,14 +20,12 @@ var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 $(function() {
   showPlayGraph();
 
-  var name = document.location.pathname.match(/[^\/]+$/)[0];
-
-
-
   if(getUrlParameter("multi") !== undefined) {
-      multiPage();
+    console.log("multipage");
+    multiPage();
   }
   else if(getUrlParameter("debug") !== undefined) {
+    console.log("debug");
     debug(getUrlParameter("debug"));
   }
 });
@@ -380,8 +378,7 @@ function getSpecificInstructions() {
 }
 
 function getCurrentCondition() {
-
-  if(forcedCondition !== undefined) {
+  if(forcedCondition == -1) {
     return condition[(pageIndex - 2) % getConditionsCount()];
   }
   else {
@@ -559,9 +556,11 @@ function updateLabels(booleanArray) {
   if(booleanArray[0] && booleanArray[1]){
     enableContinueButton();
   }
-  // In any other case, disable the continue button
+  // In any other case, disable the continue button, as long as we're on stage 2
   else {
-    disableContinueButton();
+    if(pageIndex > 0) {
+      disableContinueButton();
+    }
   }
 }
 
@@ -685,7 +684,7 @@ var getUrlParameter = function getUrlParameter(sParam) {
             return sParameterName[1] === undefined ? true : sParameterName[1];
         }
     }
-};
+}
 
 
 // Check the demographics data when the form changes.
