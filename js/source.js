@@ -114,24 +114,7 @@ function showPlayGraph() {
 
   var dataset = new vis.DataSet(items);
 
-  var options = {
-    moveable: false,
-    zoomable: false,
-    min:  "0000-01-01",
-    max:  "0004-01-05",
-
-    dataAxis: {
-        left: {
-            range: getMinMax(getYAxisRange()),
-            title: {text: "Y-axis"}
-        }
-    },
-
-    timeAxis: {scale: "month", step: 1},
-
-    start:"0000-01-01",
-    end:  "0004-01-05"
-  };
+  var options = getGraphOptions();
 
   // Show and return Graph2d object
   graph = new vis.Graph2d(container, dataset, options);
@@ -149,6 +132,28 @@ function showGraph(elementId) {
 
   var dataset = new vis.DataSet(items);
 
+  var options = getGraphOptions();
+
+  // Updates the labels
+  updateLabels(checkItems(items));
+
+  // Show and return Graph2d object
+  var g = new vis.Graph2d(container, dataset, options);
+
+  g.on("click", graphOnClick);
+
+  return g;
+}
+
+// Returns the graph options;
+function getGraphOptions() {
+
+  var yAxisLabel = "Y-axis";
+
+  if( pageIndex > 0 ) {
+    yAxisLabel = getYAxisLabel();
+  }
+
   var options = {
     moveable: false,
     zoomable: false,
@@ -158,7 +163,7 @@ function showGraph(elementId) {
     dataAxis: {
         left: {
             range: getMinMax(getYAxisRange()),
-            title: {text: getYAxisLabel()}
+            title: {text: yAxisLabel}
         }
     },
 
@@ -182,15 +187,7 @@ function showGraph(elementId) {
     end:  "0004-01-05"
   };
 
-  // Updates the labels
-  updateLabels(checkItems(items));
-
-  // Show and return Graph2d object
-  var g = new vis.Graph2d(container, dataset, options);
-
-  g.on("click", graphOnClick);
-
-  return g;
+  return options;
 }
 
 // Saves the current items
