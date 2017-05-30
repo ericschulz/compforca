@@ -360,7 +360,7 @@ function getSpecificInstructions() {
   else if (getCurrentCondition() == "sales") { text = "Please draw the <strong>sales forecast</strong> for a large company"; }
   else if (getCurrentCondition() == "facebook_friends") { text = "Please draw a graph showing the <strong>number of total Facebook friends</strong> of a 25 year old male"; }
   else if (getCurrentCondition() == "rain") { text = "Please draw the <strong>probability of a rainy day</strong> for a large city"; }
-  else if (getCurrentCondition() == "gym_memberships") { text = "Please draw the <strong>number gym members</strong> of a small gym"; }
+  else if (getCurrentCondition() == "gym_memberships") { text = "Please draw the <strong>number of total gym members</strong> of a small gym"; }
   else if (getCurrentCondition() == "wage") { text = "Please draw the <strong>hourly wage</strong> of a 25 year old male"; }
 
 
@@ -736,13 +736,15 @@ function getSubConditions() {
 function getLinearUp(base, slopeScale, noiseScale){
   var values = [];
 
-  var scale = 0.05 * base; // The scale is 5% of the base
+  //var scale = 0.05 * base; // The scale is 5% of the base
+  var scale = 0.025 * ( getYAxisRange()[1] - getYAxisRange()[0] );
 
   var slope = scale * slopeScale; // If the slopeScale is 1, the slope is 5% of the base
 
   for(var i=0; i < noisePointsCount; i++) {
     // Each value is the base + the slope*i + the random_number*scaling
-    values = values.concat( base + slope * i + getNoiseArray()[i] * scale * 4); // 4
+    values = values.concat( base + slope * i + getNoiseArray()[i] * scale * 4 * noiseScale); // 4
+    //values = values.concat( base + slope * i);
   }
 
   return addDatesToFirstYearPredictions(values);
