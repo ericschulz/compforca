@@ -1,18 +1,33 @@
-var fixedRandom = Math.random();
 var pageIndex = 0;
 var pagesNames = [];
+
+// Debug parameters
+var forcedRandomSet = -1;
+var forcedCondition = -1;
+var forcedSubCondition = -1;
 
 var condition = shuffle(["temperature", "sales", "facebook_friends", "rain","gym_memberships", "wage"]);
 var subCondition = getSubConditions();
 
 historicalData = [];
 
+var noisePointsCount = 5;
+var noiseArray = 0; // The noise array is constant across one subject
+
 // Firebase database
 var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
   showPlayGraph();
-  debug(2);
+
+  if(getUrlParameter("multi") !== undefined) {
+    console.log("multipage");
+    multiPage();
+  }
+  else if(getUrlParameter("debug") !== undefined) {
+    console.log("debug");
+    debug(getUrlParameter("debug"));
+  }
 });
 
 function toggleInstructions() {
@@ -58,7 +73,7 @@ function nextPage(){
     }
 
     // Create, show, and save graph
-    graph = showGraph();
+    graph = showGraph("graph");
 
     // Remove all items if we are on Stage 1
     if (getExperimentStage() == 1) {
@@ -99,24 +114,7 @@ function showPlayGraph() {
 
   var dataset = new vis.DataSet(items);
 
-  var options = {
-    moveable: false,
-    zoomable: false,
-    min:  "0000-01-01",
-    max:  "0004-01-05",
-
-    dataAxis: {
-        left: {
-            range: getMinMax(getYAxisRange()),
-            title: {text: "Y-axis"}
-        }
-    },
-
-    timeAxis: {scale: "month", step: 1},
-
-    start:"0000-01-01",
-    end:  "0004-01-05"
-  };
+  var options = getGraphOptions();
 
   // Show and return Graph2d object
   graph = new vis.Graph2d(container, dataset, options);
@@ -125,14 +123,36 @@ function showPlayGraph() {
 }
 
 // Graph
-function showGraph(pageName) {
-  var container = document.getElementById("graph");
+function showGraph(elementId) {
+  var container = document.getElementById(elementId);
 
   $("#specificInstructions").html(getSpecificInstructions);
 
   items = getInitialItems();
 
   var dataset = new vis.DataSet(items);
+
+  var options = getGraphOptions();
+
+  // Updates the labels
+  updateLabels(checkItems(items));
+
+  // Show and return Graph2d object
+  var g = new vis.Graph2d(container, dataset, options);
+
+  g.on("click", graphOnClick);
+
+  return g;
+}
+
+// Returns the graph options;
+function getGraphOptions() {
+
+  var yAxisLabel = "Y-axis";
+
+  if( pageIndex > 0 ) {
+    yAxisLabel = getYAxisLabel();
+  }
 
   var options = {
     moveable: false,
@@ -143,7 +163,7 @@ function showGraph(pageName) {
     dataAxis: {
         left: {
             range: getMinMax(getYAxisRange()),
-            title: {text: getYAxisLabel()}
+            title: {text: yAxisLabel}
         }
     },
 
@@ -156,10 +176,10 @@ function showGraph(pageName) {
 
     format: {
       minorLabels: {
-        month:      'MMM'
+        month:      "MMM"
       },
       majorLabels: {
-        month:      '[Year] YY'
+        month:      "[Year] YY"
       }
     },
 
@@ -167,15 +187,7 @@ function showGraph(pageName) {
     end:  "0004-01-05"
   };
 
-  // Updates the labels
-  updateLabels(checkItems(items));
-
-  // Show and return Graph2d object
-  var g = new vis.Graph2d(container, dataset, options);
-
-  g.on("click", graphOnClick);
-
-  return g;
+  return options;
 }
 
 // Saves the current items
@@ -259,22 +271,56 @@ function getInitialValue() {
   else if (getCurrentCondition() == "wage") { return 20; }
 }
 
+// Returns the lower and upper bound depending on the current condition
+function getBounds() {
+  var largeNumber = 4194304;
+
+  // If condition
+  if (getCurrentCondition() == "temperature") { return [-273, largeNumber]; } // Absolute zero to large number (hehe)
+
+  else if (getCurrentCondition() == "sales") { return [0, largeNumber]; }
+
+  else if (getCurrentCondition() == "facebook_friends") { return [0, largeNumber]; }
+
+  else if (getCurrentCondition() == "rain") { return [0, 100]; } // Percentage
+
+  else if (getCurrentCondition() == "gym_memberships") { return [0, largeNumber]; }
+
+  else if (getCurrentCondition() == "wage") { return [0, largeNumber]; }
+
+  else { return [-largeNumber, largeNumber]; }
+}
+
 // Converts the values into an items object by adding dates
 function addDatesToFirstYearPredictions(values) {
-  return [
-    {x: "0000-01-01", y: values[0]},
-    {x: "0000-03-01", y: values[1]},
-    {x: "0000-05-01", y: values[2]},
-    {x: "0000-07-01", y: values[3]},
-    {x: "0000-09-01", y: values[4]},
-    {x: "0000-11-01", y: values[5]},
-    {x: "0001-01-01", y: values[6]}
-  ];
+  // The first date in the noise vector
+  var firstDate = new Date("0000-01-01");
+
+  // Interval between each noises' point. 365 (days) divided by the amount of noisePoints (minus 1)
+  var interval = (365-31) / (noisePointsCount - 1);
+
+  var firstYearValues = [];
+
+  for(var i=0; i < noisePointsCount; i++) {
+    // Transform the datetime to string
+    var datetime = getTimeString(firstDate);
+
+    // Concatenate the element to the vector
+    firstYearValues = firstYearValues.concat({
+      x: datetime,
+      y: values[i]
+    });
+
+    // Add the interval (for the next loop's step)
+    firstDate.setDate(firstDate.getDate() + interval);
+  }
+
+  return firstYearValues;
 }
 
 // Returns the first year values of the current variable
 function getFirstYearValues() {
-  if (getCurrentPageSubcondition() == 1) { return getLinearUp(getInitialValue(), 1); }
+  if (getCurrentPageSubcondition() == 1) { return getLinearUp(getInitialValue(), 1, 1); }
   else if (getCurrentPageSubcondition() == 2) { return getStable(getInitialValue()); }
   else if (getCurrentPageSubcondition() == 3) { return getLinearDown(getInitialValue(), 1); }
 }
@@ -314,7 +360,7 @@ function getSpecificInstructions() {
   else if (getCurrentCondition() == "sales") { text = "Please draw the <strong>sales forecast</strong> for a large company"; }
   else if (getCurrentCondition() == "facebook_friends") { text = "Please draw a graph showing the <strong>number of total Facebook friends</strong> of a 25 year old male"; }
   else if (getCurrentCondition() == "rain") { text = "Please draw the <strong>probability of a rainy day</strong> for a large city"; }
-  else if (getCurrentCondition() == "gym_memberships") { text = "Please draw the <strong>number gym members</strong> of a small gym"; }
+  else if (getCurrentCondition() == "gym_memberships") { text = "Please draw the <strong>number of total gym members</strong> of a small gym"; }
   else if (getCurrentCondition() == "wage") { text = "Please draw the <strong>hourly wage</strong> of a 25 year old male"; }
 
 
@@ -329,11 +375,21 @@ function getSpecificInstructions() {
 }
 
 function getCurrentCondition() {
-  return condition[(pageIndex - 2) % getConditionsCount()];
+  if(forcedCondition == -1) {
+    return condition[(pageIndex - 2) % getConditionsCount()];
+  }
+  else {
+    return forcedCondition;
+  }
 }
 
 function getCurrentPageSubcondition() {
-  return subCondition[(pageIndex - 2) % getConditionsCount()];
+  if(forcedSubCondition < 0) {
+    return subCondition[(pageIndex - 2) % getConditionsCount()];
+  }
+  else {
+    return forcedSubCondition;
+  }
 }
 
 function getConditionsCount() {
@@ -342,10 +398,10 @@ function getConditionsCount() {
 
 function graphOnClick(params) {
   // Clicked value
-  var value = params["value"][0];
+  var value = params.value[0];
 
   // Clicked date
-  datetime = params["time"];
+  datetime = params.time;
   timeString =  getTimeString(datetime);
 
   console.log(timeString);
@@ -364,14 +420,29 @@ function graphOnClick(params) {
   }
   // In other case, it is added
   else {
-    // If the experiment is on its second stage and the item is first year, the item shouldnt be added
-    if(!( getExperimentStage() == 2 && firstYear(newItem) ) && nonNegativeYear(newItem)) {
-      items = items.concat(newItem);
-    }
+    addPoint(newItem);
   }
 
   // Updates the items shown
   updateItems(items);
+}
+
+// Adds a new point into the items' array, as long as the new point is
+// in accordance to the rules
+function addPoint(newItem) {
+  // If the experiment is on its second stage and the item is first year, the item shouldnt be added
+  if(!( getExperimentStage() == 2 && firstYear(newItem) ) && nonNegativeYear(newItem)) {
+    // The item has to be within the acceptable value boundaries
+    if( withinValueBoundaries(newItem[0]) ) {
+      // and the item is more than X days distant to the rest of the items
+      if ( moreThanXDays(newItem[0], items, 25) ) {
+        items = items.concat(newItem);
+      }
+      else {
+        //window.alert("The new point has to be at least 30 days away from the closest point.");
+      }
+    }
+  }
 }
 
 // Removes a point from the points" array
@@ -391,6 +462,37 @@ function removeLastPoint() {
   updateItems(items);
 }
 
+// Returns true if the newItem is more than X days off every other item in the list
+function moreThanXDays(newItem, items, x) {
+  var moreThanThirty = true;
+
+  for(var i=0; i < items.length; i++) {
+    // Check the distance between the newItem and every other item
+    moreThanThirty = moreThanThirty && ( distanceInDays(newItem, items[i]) > x );
+  }
+
+  return moreThanThirty;
+}
+
+// Returns the distance, in months, between two items
+function distanceInDays(item1, item2) {
+  var date1 = new Date(item1.x);
+  var date2 = new Date(item2.x);
+
+  // Returns the absolute distance between the dates, in days
+  return Math.abs(date2 - date1)/1000/60/60/24;
+}
+
+// Returns true if the new point is within the acceptable value boundaries
+function withinValueBoundaries(item) {
+  var lowerBound = getBounds()[0];
+  var upperBound = getBounds()[1];
+
+  // Get the item's value
+  var value = item.y;
+
+  return value > lowerBound && value < upperBound;
+}
 
 // Returns true if the year of the item is not "000-x"
 function nonNegativeYear(item) {
@@ -450,6 +552,12 @@ function updateLabels(booleanArray) {
   // Enable the "Continue" button when both conditions are OK
   if(booleanArray[0] && booleanArray[1]){
     enableContinueButton();
+  }
+  // In any other case, disable the continue button, as long as we're on stage 2
+  else {
+    if(pageIndex > 0) {
+      disableContinueButton();
+    }
   }
 }
 
@@ -573,7 +681,7 @@ var getUrlParameter = function getUrlParameter(sParam) {
             return sParameterName[1] === undefined ? true : sParameterName[1];
         }
     }
-};
+}
 
 
 // Check the demographics data when the form changes.
@@ -625,60 +733,102 @@ function getSubConditions() {
   return subc;
 }
 
-function getLinearUp(base, slopeScale){
+function getLinearUp(base, slopeScale, noiseScale){
   var values = [];
 
-  var scale = 0.05 * base; // The scale is 5% of the base
+  //var scale = 0.05 * base; // The scale is 5% of the base
+  var scale = 0.025 * ( getYAxisRange()[1] - getYAxisRange()[0] );
 
   var slope = scale * slopeScale; // If the slopeScale is 1, the slope is 5% of the base
 
-  for(var i=0; i < 7; i++) {
+  for(var i=0; i < noisePointsCount; i++) {
     // Each value is the base + the slope*i + the random_number*scaling
-    values = values.concat( base + slope * i + getSevenRandom()[i] * scale * 4);
+    values = values.concat( base + slope * i + getNoiseArray()[i] * scale * 4 * noiseScale); // 4
+    //values = values.concat( base + slope * i);
   }
 
   return addDatesToFirstYearPredictions(values);
 }
 
 function getStable(base){
-  return getLinearUp(base, 0);
+  return getLinearUp(base, 0, 1);
 }
 
 function getLinearDown(base, slopeScale){
-  return getLinearUp(base, slopeScale * -1);
+  return getLinearUp(base, slopeScale * -1, -1);
 }
 
-// Returns seven random numbers, from -0.5 to 0.5
-// Generated in Python 3.5.2 by "random.random() - 0.5" from the random.py library
-function getSevenRandom() {
+// Returns a noise array for the trends
+function generateNoiseArray() {
+  var fiveRandom = getFiveRandom();
+
+  console.log(forcedRandomSet);
+  console.log(fiveRandom);
+
+  var arrayAverage = getArrayAverage(fiveRandom);
+
+  var noiseArray = [0];
+
+  // Subtract the array's average to every element
+  for(var i=0; i < noisePointsCount - 2; i++) {
+    noiseArray = noiseArray.concat(fiveRandom[i] - arrayAverage);
+  }
+
+  // Returns the five random, each minus the array's average, and surrounded by zeroes.
+  // i.e., [0, random_1, ..., random_n, 0]
+  return noiseArray.concat([0]);
+}
+
+function getNoiseArray() {
+  if(noiseArray === 0){
+    noiseArray = generateNoiseArray();
+  }
+  return noiseArray;
+}
+
+// Returns the array's average value
+function getArrayAverage(array){
+  var sum = 0;
+
+  for(var i=0; i < array.length; i++) {
+    sum = sum + array[i];
+  }
+
+  return sum/array.length;
+}
+
+// Returns five random numbers
+// Generated in Python 3.5.2 by "random.random()" from the random.py library
+function getFiveRandom() {
   var sets =
     [
-      [ 0.16933093785196052 - 0.5,
-        0.7642726400978779 - 0.5,
-        0.59420237112108 - 0.5,
-        0.8045676111568967 - 0.5,
-        0.3616072333221285 - 0.5,
-        0.4333995695523616 - 0.5,
-        0.3448741485276291  - 0.5 ],
+      [ 0.7642726400978779,
+        0.59420237112108,
+        0.8045676111568967,
+        0.3616072333221285,
+        0.4333995695523616 ],
 
-      [ 0.2330127377152953 - 0.5,
-        0.44558333713334464 - 0.5,
-        0.7720815219200008 - 0.5,
-        0.091949620524298 - 0.5,
-        0.3371284569763776 - 0.5,
-        0.8147280055034919 - 0.5,
-        0.5571889833319483 - 0.5 ],
+      [ 0.44558333713334464,
+        0.7720815219200008,
+        0.091949620524298,
+        0.3371284569763776,
+        0.8147280055034919 ],
 
-      [ 0.015973944458846367 - 0.5,
-        0.6163862558959631 - 0.5,
-        0.04367949448727826 - 0.5,
-        0.057026095449790204 - 0.5,
-        0.040766425126964156 - 0.5,
-        0.17492704212711474 - 0.5,
-        0.08634859133712236 - 0.5 ]
+      [ 0.6163862558959631,
+        0.04367949448727826,
+        0.057026095449790204,
+        0.040766425126964156,
+        0.17492704212711474 ]
     ];
 
-  return sets[Math.floor(fixedRandom * sets.length)];
+  if (forcedRandomSet < 0) {
+    // Randomly returns one of the random sets
+    return sets[Math.floor(Math.random() * sets.length)];
+  }
+  else {
+    return sets[forcedRandomSet];
+  }
+
 }
 
 // ######################### DEBUG
@@ -687,4 +837,11 @@ function debug(value){
   for(var i=0; i<value; i++) {
     nextPage();
   }
+}
+
+function multiPage() {
+  forcedRandomSet = getUrlParameter("randomset");
+  forcedCondition = ["temperature", "sales", "facebook_friends", "rain","gym_memberships", "wage"][getUrlParameter("condition")];
+  forcedSubCondition = getUrlParameter("subcondition");
+  debug(9);
 }
