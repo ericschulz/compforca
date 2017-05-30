@@ -1,18 +1,35 @@
-var fixedRandom = Math.random();
 var pageIndex = 0;
 var pagesNames = [];
+
+// Debug parameters
+var forcedRandomSet = -1;
+var forcedCondition = undefined;
+var forcedSubCondition = -1;
 
 var condition = shuffle(["temperature", "sales", "facebook_friends", "rain","gym_memberships", "wage"]);
 var subCondition = getSubConditions();
 
 historicalData = [];
 
+var noisePointsCount = 5;
+var noiseArray = 0; // The noise array is constant across one subject
+
 // Firebase database
 var database = new Firebase("https://bayesian-forecasting.firebaseio.com/");
 
 $(function() {
   showPlayGraph();
-  //debug(9);
+
+  var name = document.location.pathname.match(/[^\/]+$/)[0];
+
+
+
+  if(getUrlParameter("multi") !== undefined) {
+      multiPage();
+  }
+  else if(getUrlParameter("debug") !== undefined) {
+    debug(getUrlParameter("debug"));
+  }
 });
 
 function toggleInstructions() {
@@ -58,7 +75,7 @@ function nextPage(){
     }
 
     // Create, show, and save graph
-    graph = showGraph();
+    graph = showGraph("graph");
 
     // Remove all items if we are on Stage 1
     if (getExperimentStage() == 1) {
@@ -125,8 +142,8 @@ function showPlayGraph() {
 }
 
 // Graph
-function showGraph(pageName) {
-  var container = document.getElementById("graph");
+function showGraph(elementId) {
+  var container = document.getElementById(elementId);
 
   $("#specificInstructions").html(getSpecificInstructions);
 
@@ -281,20 +298,34 @@ function getBounds() {
 
 // Converts the values into an items object by adding dates
 function addDatesToFirstYearPredictions(values) {
-  return [
-    {x: "0000-01-01", y: values[0]},
-    {x: "0000-03-01", y: values[1]},
-    {x: "0000-05-01", y: values[2]},
-    {x: "0000-07-01", y: values[3]},
-    {x: "0000-09-01", y: values[4]},
-    {x: "0000-11-01", y: values[5]},
-    {x: "0001-01-01", y: values[6]}
-  ];
+  // The first date in the noise vector
+  var firstDate = new Date("0000-01-01");
+
+  // Interval between each noises' point. 365 (days) divided by the amount of noisePoints (minus 1)
+  var interval = (365-31) / (noisePointsCount - 1);
+
+  var firstYearValues = [];
+
+  for(var i=0; i < noisePointsCount; i++) {
+    // Transform the datetime to string
+    var datetime = getTimeString(firstDate);
+
+    // Concatenate the element to the vector
+    firstYearValues = firstYearValues.concat({
+      x: datetime,
+      y: values[i]
+    });
+
+    // Add the interval (for the next loop's step)
+    firstDate.setDate(firstDate.getDate() + interval);
+  }
+
+  return firstYearValues;
 }
 
 // Returns the first year values of the current variable
 function getFirstYearValues() {
-  if (getCurrentPageSubcondition() == 1) { return getLinearUp(getInitialValue(), 1); }
+  if (getCurrentPageSubcondition() == 1) { return getLinearUp(getInitialValue(), 1, 1); }
   else if (getCurrentPageSubcondition() == 2) { return getStable(getInitialValue()); }
   else if (getCurrentPageSubcondition() == 3) { return getLinearDown(getInitialValue(), 1); }
 }
@@ -349,11 +380,22 @@ function getSpecificInstructions() {
 }
 
 function getCurrentCondition() {
-  return condition[(pageIndex - 2) % getConditionsCount()];
+
+  if(forcedCondition !== undefined) {
+    return condition[(pageIndex - 2) % getConditionsCount()];
+  }
+  else {
+    return forcedCondition;
+  }
 }
 
 function getCurrentPageSubcondition() {
-  return subCondition[(pageIndex - 2) % getConditionsCount()];
+  if(forcedSubCondition < 0) {
+    return subCondition[(pageIndex - 2) % getConditionsCount()];
+  }
+  else {
+    return forcedSubCondition;
+  }
 }
 
 function getConditionsCount() {
@@ -695,14 +737,14 @@ function getSubConditions() {
   return subc;
 }
 
-function getLinearUp(base, slopeScale){
+function getLinearUp(base, slopeScale, noiseScale){
   var values = [];
 
   var scale = 0.05 * base; // The scale is 5% of the base
 
   var slope = scale * slopeScale; // If the slopeScale is 1, the slope is 5% of the base
 
-  for(var i=0; i < 7; i++) {
+  for(var i=0; i < noisePointsCount; i++) {
     // Each value is the base + the slope*i + the random_number*scaling
     values = values.concat( base + slope * i + getNoiseArray()[i] * scale * 4); // 4
   }
@@ -711,34 +753,46 @@ function getLinearUp(base, slopeScale){
 }
 
 function getStable(base){
-  return getLinearUp(base, 0);
+  return getLinearUp(base, 0, 1);
 }
 
 function getLinearDown(base, slopeScale){
-  return getLinearUp(base, slopeScale * -1);
+  return getLinearUp(base, slopeScale * -1, -1);
 }
 
 // Returns a noise array for the trends
-function getNoiseArray() {
+function generateNoiseArray() {
   var fiveRandom = getFiveRandom();
+
+  console.log(forcedRandomSet);
+  console.log(fiveRandom);
 
   var arrayAverage = getArrayAverage(fiveRandom);
 
+  var noiseArray = [0];
+
   // Subtract the array's average to every element
-  for(var i=0; i < fiveRandom.length; i++) {
-    fiveRandom[i] = fiveRandom[i] - arrayAverage;
+  for(var i=0; i < noisePointsCount - 2; i++) {
+    noiseArray = noiseArray.concat(fiveRandom[i] - arrayAverage);
   }
 
   // Returns the five random, each minus the array's average, and surrounded by zeroes.
   // i.e., [0, random_1, ..., random_n, 0]
-  return [0].concat(fiveRandom).concat([0]);
+  return noiseArray.concat([0]);
+}
+
+function getNoiseArray() {
+  if(noiseArray === 0){
+    noiseArray = generateNoiseArray();
+  }
+  return noiseArray;
 }
 
 // Returns the array's average value
 function getArrayAverage(array){
   var sum = 0;
 
-  for(var i=0; i<array.length; i++) {
+  for(var i=0; i < array.length; i++) {
     sum = sum + array[i];
   }
 
@@ -769,8 +823,14 @@ function getFiveRandom() {
         0.17492704212711474 ]
     ];
 
-  // Randomly returns one of the random sets
-  return sets[Math.floor(fixedRandom * sets.length)];
+  if (forcedRandomSet < 0) {
+    // Randomly returns one of the random sets
+    return sets[Math.floor(Math.random() * sets.length)];
+  }
+  else {
+    return sets[forcedRandomSet];
+  }
+
 }
 
 // ######################### DEBUG
@@ -779,4 +839,11 @@ function debug(value){
   for(var i=0; i<value; i++) {
     nextPage();
   }
+}
+
+function multiPage() {
+  forcedRandomSet = getUrlParameter("randomset");
+  forcedCondition = ["temperature", "sales", "facebook_friends", "rain","gym_memberships", "wage"][getUrlParameter("condition")];
+  forcedSubCondition = getUrlParameter("subcondition");
+  debug(9);
 }

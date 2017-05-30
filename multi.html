@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+    <style>
+      iframe {
+        width: 700px;
+        height: 800px;
+      }
+    </style>
+
+  </head>
+
+  <body>
+
+    <h1> Positive slope </h1>
+
+    <iframe id="i11"></iframe>
+    <iframe id="i12"></iframe>
+    <iframe id="i13"></iframe>
+    <iframe id="i14"></iframe>
+    <iframe id="i15"></iframe>
+    <iframe id="i16"></iframe>
+
+    <br /><h1> Negative slope </h1>
+
+    <iframe id="i21"></iframe>
+    <iframe id="i22"></iframe>
+    <iframe id="i23"></iframe>
+    <iframe id="i24"></iframe>
+    <iframe id="i25"></iframe>
+    <iframe id="i26"></iframe>
+
+    <br /><h1> No slope </h1>
+
+    <iframe id="i31"></iframe>
+    <iframe id="i32"></iframe>
+    <iframe id="i33"></iframe>
+    <iframe id="i34"></iframe>
+    <iframe id="i35"></iframe>
+    <iframe id="i36"></iframe>
+
+
+
+        <script>
+          var getUrlParameter = function getUrlParameter(sParam) {
+              var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+                  sURLVariables = sPageURL.split("&"),
+                  sParameterName,
+                  i;
+
+              for (i = 0; i < sURLVariables.length; i++) {
+                  sParameterName = sURLVariables[i].split("=");
+
+                  if (sParameterName[0] === sParam) {
+                      return sParameterName[1] === undefined ? true : sParameterName[1];
+                  }
+              }
+          };
+
+          var randomSet = 0;
+
+          if(getUrlParameter("randomset") !== undefined) {
+            randomSet = getUrlParameter("randomset");
+          }
+
+          document.getElementById("i11").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=0&subcondition=1";
+          document.getElementById("i12").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=1&subcondition=1";
+          document.getElementById("i13").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=2&subcondition=1";
+          document.getElementById("i14").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=3&subcondition=1";
+          document.getElementById("i15").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=4&subcondition=1";
+          document.getElementById("i16").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=5&subcondition=1";
+
+          document.getElementById("i21").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=0&subcondition=3";
+          document.getElementById("i22").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=1&subcondition=3";
+          document.getElementById("i23").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=2&subcondition=3";
+          document.getElementById("i24").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=3&subcondition=3";
+          document.getElementById("i25").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=4&subcondition=3";
+          document.getElementById("i26").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=5&subcondition=3";
+
+          document.getElementById("i31").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=0&subcondition=2";
+          document.getElementById("i32").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=1&subcondition=2";
+          document.getElementById("i33").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=2&subcondition=2";
+          document.getElementById("i34").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=3&subcondition=2";
+          document.getElementById("i35").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=4&subcondition=2";
+          document.getElementById("i36").src="experiment.html?multi=1&randomset=" + randomSet + "&condition=5&subcondition=2";
+
+        </script>
+
+  </body>
+</html>
