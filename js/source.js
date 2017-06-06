@@ -356,7 +356,7 @@ function getExperimentStage() {
 function getSpecificInstructions() {
   var text = "";
 
-  if (getCurrentCondition() == "temperature") { text = "Please draw the <strong>weather forecast</strong> for a large city"; }
+  if (getCurrentCondition() == "temperature") { text = "Please draw the <strong>temperature forecast</strong> for a large city"; }
   else if (getCurrentCondition() == "sales") { text = "Please draw the <strong>sales forecast</strong> for a large company"; }
   else if (getCurrentCondition() == "facebook_friends") { text = "Please draw a graph showing the <strong>number of total Facebook friends</strong> of a 25 year old male"; }
   else if (getCurrentCondition() == "rain") { text = "Please draw the <strong>probability of a rainy day</strong> for a large city"; }
