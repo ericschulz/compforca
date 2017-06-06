@@ -262,11 +262,11 @@ function getInitialValue() {
 
   else if (getCurrentCondition() == "sales") { return 2500; }
 
-  else if (getCurrentCondition() == "facebook_friends") { return 200; }
+  else if (getCurrentCondition() == "facebook_friends") { return 500; }
 
   else if (getCurrentCondition() == "rain") { return 30; }
 
-  else if (getCurrentCondition() == "gym_memberships") { return 30; }
+  else if (getCurrentCondition() == "gym_memberships") { return 25; }
 
   else if (getCurrentCondition() == "wage") { return 20; }
 }
@@ -736,8 +736,9 @@ function getSubConditions() {
 function getLinearUp(base, slopeScale, noiseScale){
   var values = [];
 
-  //var scale = 0.05 * base; // The scale is 5% of the base
-  var scale = 0.025 * ( getYAxisRange()[1] - getYAxisRange()[0] );
+  var percentage = 0.05; // 0.025
+
+  var scale = percentage * ( getYAxisRange()[1] - getYAxisRange()[0] );
 
   var slope = scale * slopeScale; // If the slopeScale is 1, the slope is 5% of the base
 
