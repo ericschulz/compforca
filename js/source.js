@@ -107,9 +107,9 @@ function showPlayGraph() {
   var container = document.getElementById("play_graph");
 
   items = [
-    {x: "0000-01-01", y: 10},
-    {x: "0000-06-01", y: 20},
-    {x: "0000-12-01", y: 30}
+    {x: "0001-01-01", y: 10},
+    {x: "0001-06-01", y: 20},
+    {x: "0001-12-01", y: 30}
   ];
 
   var dataset = new vis.DataSet(items);
@@ -157,8 +157,10 @@ function getGraphOptions() {
   var options = {
     moveable: false,
     zoomable: false,
-    min:  "0000-01-01",
-    max:  "0004-01-05",
+    min:  "0001-01-01",
+    max:  "0005-01-05",
+    start:"0001-01-01",
+    end:  "0005-01-05",
 
     dataAxis: {
         left: {
@@ -181,10 +183,7 @@ function getGraphOptions() {
       majorLabels: {
         month:      "[Year] YY"
       }
-    },
-
-    start:"0000-01-01",
-    end:  "0004-01-05"
+    }
   };
 
   return options;
@@ -294,7 +293,7 @@ function getBounds() {
 // Converts the values into an items object by adding dates
 function addDatesToFirstYearPredictions(values) {
   // The first date in the noise vector
-  var firstDate = new Date("0000-01-01");
+  var firstDate = new Date("0001-01-01");
 
   // Interval between each noises' point. 365 (days) divided by the amount of noisePoints (minus 1)
   var interval = (365-31) / (noisePointsCount - 1);
@@ -328,7 +327,7 @@ function getFirstYearValues() {
 // Returns the initial items to be shown on the graph
 function getInitialItems() {
   if(getExperimentStage() == 1) {
-    return [{x: "0005-01-01", y: getInitialValue()}];
+    return [{x: "1000-01-01", y: getInitialValue()}];
   }
   else if(getExperimentStage() == 2) {
     return getFirstYearValues();
@@ -431,7 +430,7 @@ function graphOnClick(params) {
 // in accordance to the rules
 function addPoint(newItem) {
   // If the experiment is on its second stage and the item is first year, the item shouldnt be added
-  if(!( getExperimentStage() == 2 && firstYear(newItem) ) && nonNegativeYear(newItem)) {
+  if(!( getExperimentStage() == 2 && firstYear(newItem) ) && positiveYear(newItem)) {
     // The item has to be within the acceptable value boundaries
     if( withinValueBoundaries(newItem[0]) ) {
       // and the item is more than X days distant to the rest of the items
@@ -494,15 +493,15 @@ function withinValueBoundaries(item) {
   return value > lowerBound && value < upperBound;
 }
 
-// Returns true if the year of the item is not "000-x"
-function nonNegativeYear(item) {
-  return item[0].x.split("-")[0] != "000";
+// Returns true if the year of the item is positive (i.e., "000-x")
+function positiveYear(item) {
+  return item[0].x.split("-")[0] != "000" && item[0].x.split("-")[0] != "0000";
 }
 
 // Returns true when the item is of the first year
 // Receives an array of objects, with only one item
 function firstYear(item) {
-  return item[0].x.split("-")[0] == "0000";
+  return item[0].x.split("-")[0] == "0001";
 }
 
 function updateItems(items) {
@@ -523,11 +522,11 @@ function checkItems(items) {
   for(var i=0; i < items.length; i++) {
     dateElements = items[i].x.split("-");
 
-    firstMonth = firstMonth || (dateElements[0] == "0000" && dateElements[1] == "01");
+    firstMonth = firstMonth || (dateElements[0] == "0001" && dateElements[1] == "01");
 
-    lastMonth = lastMonth || (dateElements[0] == "0003" && dateElements[1] == "12");
+    lastMonth = lastMonth || (dateElements[0] == "0004" && dateElements[1] == "12");
 
-    lastMonth = lastMonth || (dateElements[0] == "0004" && dateElements[1] == "01");
+    lastMonth = lastMonth || (dateElements[0] == "0005" && dateElements[1] == "01");
   }
 
   return [firstMonth, lastMonth];
