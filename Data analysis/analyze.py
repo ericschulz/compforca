@@ -1,4 +1,5 @@
 # exec(open('C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/analyze.py').read())
+# s = Subject()
 # pip install plotly
 
 
@@ -10,6 +11,7 @@
 import json
 
 # Library to plot graphs
+import plotly
 import plotly.plotly as py
 import plotly.graph_objs as go
 
@@ -26,54 +28,55 @@ import datetime
 filepath = 'C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/bayesian-forecasting-export.json'
 dataset = json.load(open(filepath, 'r'))
 
+subjects = create_subjects()
 
 ##############################################################
 ##                     JSON PROCESSING                      ##
 ##############################################################
 
-# Analyzes the entire dataset
-def analyze_dataset():
-    for subjectId in dataset.keys():
-        analyze_one_subject( dataset[subjectId] )
-
+# Creates all the Subjects' objects and returns a list
 def create_subjects():
+    participants = []
+
     for subjectId in dataset.keys():
-        analyze_one_subject( dataset[subjectId] )
+        participants.append(Subject(dataset[subjectId]))
+
+    return participants
 
 # Analyzes the data for one subject
-def analyze_one_subject( subject ):
-    print ( get_prolific_id( subject ) )
-    print ( get_session_id( subject ) )
-    print ( get_age( subject ) )
-    print ( get_datetime( subject ) )
-    print ( get_gender( subject ) )
+def analyze_one_subject( index ):
+    subject = subjects[index]
 
-def get_test():
-    subject = dataset[list(dataset)[0]]
-    return get_subject_variable_stage(subject, 'rain', 1)
+    plot_subject_variable(subject, 'rain')
 
-def plot_rain():
+# Displays a plot for a single subject, and a single variable
+# variable can be {rain, gym_memberships, temperature, wage, facebook_friends, sales}
+def plot_subject_variable( subjectIndex, variable):
+    subject = subjects[subjectIndex]
+
     trace0 = go.Scatter(
-        x = random_x,
-        y = random_y0,
-        mode = 'lines',
-        name = 'lines'
-    )
-    trace1 = go.Scatter(
-        x = random_x,
-        y = random_y1,
+        x = subject.get_response_items(variable, 1)['x'],
+        y = subject.get_response_items(variable, 1)['y'],
         mode = 'lines+markers',
-        name = 'lines+markers'
+        name = 'Stage 1',
+        line = dict(
+            shape='spline'
+        )
     )
-    trace2 = go.Scatter(
-        x = random_x,
-        y = random_y2,
-        mode = 'markers',
-        name = 'markers'
-    )
-    data = [trace0, trace1, trace2]
 
-    py.iplot(data, filename='line-mode')
+    trace1 = go.Scatter(
+        x = subject.get_response_items(variable, 2)['x'],
+        y = subject.get_response_items(variable, 2)['y'],
+        mode = 'lines+markers',
+        name = 'Stage2',
+        line = dict(
+            shape='spline'
+        )
+    )
+
+    data = [trace0, trace1]
+
+    plotly.offline.plot(data, filename='line-mode')
 
 
 ##############################################################
@@ -90,10 +93,10 @@ class Subject:
 
     def __init__(self, subjectData):
         self.rawData = subjectData
-        self.__processRawData()
+        self.__processSubjectRawData()
 
     # Processes the raw data received in the constructor
-    def __processRawData( self ):
+    def __processSubjectRawData( self ):
         self.userId = self.rawData['userId']
         self.sessionId = self.rawData['sessionId']
         self.age = self.rawData['age']
@@ -115,32 +118,22 @@ class Subject:
 
     #################### GETTERS ####################
 
-    # Returns the responses for a specific variable and stage
-    def get_subject_variable_stage( self, variable, stage ):
+    # Returns the processed responses for a specific variable and stage
+    def get_response( self, variable, stage ):
 
         # For each variable, check if the search is finished. If it is, return that.
         for r in self.responses:
-            if r['condition'] == variable and get_stage(r['pageIndex']) == stage :
+            if r.condition == variable and r.stage == stage :
                 return r
 
         # If this point is reached, then the response was not found
         return "not found"
 
-    def get_rain_1( self ):
-        return get_subject_variable_stage(subject, 'rain', 1)
-
-    # Returns a stage (1 or 2) given a pageIndex (integer)
-    def get_stage( pageIndex ):
-        if pageIndex <= 7:
-            return 1
-        elif pageIndex <= 13:
-            return 2
-        else:
-            return "error"
-
+    def get_response_items( self, variable, stage ):
+        return self.get_response(variable, stage).items
 
 ##############################################################
-##                         RESPONSE                          ##
+##                         RESPONSE                         ##
 ##############################################################
 
 class Response:
@@ -148,33 +141,45 @@ class Response:
 
     def __init__( self, responseData ):
         self.rawData = responseData
-        self.__processRawData()
+        self.__processResponseRawData()
 
-    def __processRawData( self ):
+    def __processResponseRawData( self ):
         self.timestamp = self.rawData['now']
         self.datetime =  self.rawData['datetime']
         self.condition = self.rawData['condition']
         self.subCondition = self.rawData['subCondition']
         self.pageIndex = self.rawData['pageIndex']
+
         self.rawItems = self.rawData['items']
+        self.orderedRawItems = sorted(self.rawItems, key=lambda k: k['x']) # Sort the data by date
+        self.items = self.__processItems(self.orderedRawItems)
 
-        self.items = self.__processItems(self.rawItems)
+        self.stage = self.__get_stage(self.pageIndex)
 
-    # Processes the items raw data to a dictionary {x: xdata, y: ydata}
+    # Processes the items raw data to a dictionary {'x': xdata, 'y': ydata}
     def __processItems( self, rawItems ):
         xdata = []
         ydata = []
 
         for item in rawItems:
             # Append the y data point (transformed to a Date object)
-            xdata.append(transformDate(item['x']))
+            xdata.append(self.transformDate(item['x']))
 
             # Append the x data point (transformed to float)
             ydata.append(float(item['y']))
 
-        return {x: xdata, y: ydata}
+        return {'x': xdata, 'y': ydata}
 
     # Receives a date string with format "yyyy-mm-dd" and returns the
     # corresponding Date object
-    def transformDate( dateString ):
+    def transformDate( self, dateString ):
         return datetime.datetime.strptime(dateString, "%Y-%m-%d").date()
+
+    # Returns a stage (1 or 2) given a pageIndex (integer)
+    def __get_stage( self, pageIndex ):
+        if pageIndex <= 7:
+            return 1
+        elif pageIndex <= 13:
+            return 2
+        else:
+            return "error"
