@@ -1,0 +1,4 @@
+Strange results:
+  57ae6994f9e4d00001114eab -- minimum effort in Stage 1
+  56814d4dc5767f00121d201a -- looks like no effort but maybe yes?
+  59294bd4b68ed80001729749 -- definitely no effort
