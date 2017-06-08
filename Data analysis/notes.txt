@@ -7,7 +7,52 @@ Strange results:
   58c4ff360f0c150001ed45a4 -- did not understand the plot?
   5777d41ff8f7ed00014b4f7e -- VERY linear in stage 1
 
+  5908458b1138880001bc77e7 -- REALLY strange. Instructions not understood?
+  58aaff6ff6cc2100012b1130 -- Very strange patterns
+  57bae6b9017c2d000166f593 -- VERY linear in stage 1
+  559bbbdafdf99b7ce19d5b3d -- did the person understand the graph?
+  590882b8044c120001ccd2a6 -- no data
+
+
+  NO CODE and NO DATA
+  569e72698ad3f8000674224e
+  5914a7d70ceb0a0001498166
+  55b8113efdf99b4633359b7b
+  59274ec9dd3a97000164ebc1
+  590f48c39905e9000164ef8e
+
+  58904376ec69f60001347937
+  59107216127b0b00011fabea
+  591d0422f8672e0001136a44
+  587582545c17910001ea4f39
+  577e79ecdcff7d0001c7a534
+
+  ----------------------------------------------------------
 
   APPROVED:
   54905775fdf99b7255546dfe -- pretty stable
   58c431cf3532d300014d12ff -- very strange
+  565f1784e14ebc0006c5f89d -- strange
+
+  5929e8d96c835800011a31f9 -- a little bit strange
+  58d3ccc81877ea000115a1fb -- same
+
+  5768dabf8e454c000133a60b -- strange stable temperature
+  56c393c495cf7f000b956b25 -- stable temperature?
+  55b35d6ffdf99b7e6a9904c0
+  579a7242275be6000135a9b8
+
+  559272f4fdf99b7e42e96932 -- very linear in Stage 1
+  571cc796e1d2ec0013a68a78
+  552845ddfdf99b3402cfc6ff
+  58c3407d444ade0001022f7d
+
+
+  56cefc4cb009e1000aa73684 -- strange figures
+  582db13b6ef28c00019a118e -- I see no clear periodicities
+  5927eb15b341e30001b7e701
+
+
+
+  Beautiful
+  55cf7e8b34e906000ee56498

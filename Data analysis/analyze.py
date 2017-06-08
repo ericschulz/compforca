@@ -307,6 +307,10 @@ class Response:
     # Receives a date string with format "yyyy-mm-dd" and returns the
     # corresponding Date object
     def transform_date( self, dateString ):
+        # Exception protection. Movement of one day. TODO: This should be fixed on the experiment itself.
+        if dateString == '0000-12-31':
+            dateString = '0001-01-01'
+
         return datetime.datetime.strptime(dateString, "%Y-%m-%d").date()
 
     # Returns a stage (1 or 2) given a pageIndex (integer)
