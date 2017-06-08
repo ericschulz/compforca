@@ -49,9 +49,17 @@ def analyze_one_subject( index ):
 
     plot_subject_variable(subject, 'rain')
 
+def plot_subjects_variable( variable ):
+    traces = []
+
+    for index in range(0, len(subjects)):
+        traces = traces + [traces_subject_variable(index, variable)[1]]
+
+    plotly.offline.plot(traces, filename='line-mode')
+
 # Displays a plot for a single subject, and a single variable
 # variable can be {rain, gym_memberships, temperature, wage, facebook_friends, sales}
-def plot_subject_variable( subjectIndex, variable):
+def traces_subject_variable( subjectIndex, variable ):
     subject = subjects[subjectIndex]
 
     trace0 = go.Scatter(
@@ -68,15 +76,13 @@ def plot_subject_variable( subjectIndex, variable):
         x = subject.get_response_items(variable, 2)['x'],
         y = subject.get_response_items(variable, 2)['y'],
         mode = 'lines+markers',
-        name = 'Stage2',
+        name = 'Stage 2',
         line = dict(
             shape='spline'
         )
     )
 
-    data = [trace0, trace1]
-
-    plotly.offline.plot(data, filename='line-mode')
+    return [trace0, trace1]
 
 
 ##############################################################
