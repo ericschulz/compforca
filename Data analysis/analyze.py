@@ -84,6 +84,15 @@ def traces_subject_variable( subjectIndex, variable ):
 
     return [trace0, trace1]
 
+def print_invalid_subjects():
+    for s in subjects:
+        if not s.is_valid():
+            print(s.userId)
+
+
+def get_number_of_subjects():
+    return len(subjects)
+
 
 ##############################################################
 ##                          TOOLS                           ##
@@ -137,6 +146,10 @@ class Subject:
 
     def get_response_items( self, variable, stage ):
         return self.get_response(variable, stage).items
+
+    # Returns true if the subject is valid for analysis
+    def is_valid( self ):
+        return len(self.responses) == 12
 
 ##############################################################
 ##                         RESPONSE                         ##

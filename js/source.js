@@ -532,7 +532,9 @@ function checkItems(items) {
   }
 
   // If we are on the second stage, then the firstMonth is necessarilly true
-  firstMonth = (getExperimentStage()==2);
+  if(getExperimentStage() == 2){
+    firstMonth = true;
+  }
 
   return [firstMonth, lastMonth];
 }
