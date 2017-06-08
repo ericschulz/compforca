@@ -218,7 +218,7 @@ function sendData() {
     "gender": getGender().toString(),
     "age": getAge().toString(),
     "historicalData": historicalData,
-    "randomSet": getNoiseArray()
+    "noiseArray": getNoiseArray()
   });
 }
 
