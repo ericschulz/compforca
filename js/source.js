@@ -199,7 +199,8 @@ function saveItems() {
     "pageIndex": pageIndex,
     "condition": getCurrentCondition(),
     "subCondition": getCurrentPageSubcondition(),
-    "items": items
+    "items": items,
+    "stage": getExperimentStage()
   };
 
   historicalData = historicalData.concat(pageData);
@@ -216,7 +217,8 @@ function sendData() {
     "datetime": (new Date(now)).toString(),
     "gender": getGender().toString(),
     "age": getAge().toString(),
-    "historicalData": historicalData
+    "historicalData": historicalData,
+    "randomSet": getNoiseArray()
   });
 }
 
