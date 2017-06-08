@@ -107,9 +107,9 @@ function showPlayGraph() {
   var container = document.getElementById("play_graph");
 
   items = [
-    {x: "0000-01-01", y: 10},
-    {x: "0000-06-01", y: 20},
-    {x: "0000-12-01", y: 30}
+    {x: "0001-01-01", y: 10},
+    {x: "0001-06-01", y: 20},
+    {x: "0001-12-01", y: 30}
   ];
 
   var dataset = new vis.DataSet(items);
@@ -157,8 +157,10 @@ function getGraphOptions() {
   var options = {
     moveable: false,
     zoomable: false,
-    min:  "0000-01-01",
-    max:  "0004-01-05",
+    min:  "0001-01-01",
+    max:  "0005-01-05",
+    start:"0001-01-01",
+    end:  "0005-01-05",
 
     dataAxis: {
         left: {
@@ -181,10 +183,7 @@ function getGraphOptions() {
       majorLabels: {
         month:      "[Year] YY"
       }
-    },
-
-    start:"0000-01-01",
-    end:  "0004-01-05"
+    }
   };
 
   return options;
@@ -200,7 +199,8 @@ function saveItems() {
     "pageIndex": pageIndex,
     "condition": getCurrentCondition(),
     "subCondition": getCurrentPageSubcondition(),
-    "items": items
+    "items": items,
+    "stage": getExperimentStage()
   };
 
   historicalData = historicalData.concat(pageData);
@@ -217,7 +217,8 @@ function sendData() {
     "datetime": (new Date(now)).toString(),
     "gender": getGender().toString(),
     "age": getAge().toString(),
-    "historicalData": historicalData
+    "historicalData": historicalData,
+    "noiseArray": getNoiseArray()
   });
 }
 
@@ -262,11 +263,11 @@ function getInitialValue() {
 
   else if (getCurrentCondition() == "sales") { return 2500; }
 
-  else if (getCurrentCondition() == "facebook_friends") { return 200; }
+  else if (getCurrentCondition() == "facebook_friends") { return 500; }
 
   else if (getCurrentCondition() == "rain") { return 30; }
 
-  else if (getCurrentCondition() == "gym_memberships") { return 30; }
+  else if (getCurrentCondition() == "gym_memberships") { return 25; }
 
   else if (getCurrentCondition() == "wage") { return 20; }
 }
@@ -294,7 +295,7 @@ function getBounds() {
 // Converts the values into an items object by adding dates
 function addDatesToFirstYearPredictions(values) {
   // The first date in the noise vector
-  var firstDate = new Date("0000-01-01");
+  var firstDate = new Date("0001-01-01");
 
   // Interval between each noises' point. 365 (days) divided by the amount of noisePoints (minus 1)
   var interval = (365-31) / (noisePointsCount - 1);
@@ -328,7 +329,7 @@ function getFirstYearValues() {
 // Returns the initial items to be shown on the graph
 function getInitialItems() {
   if(getExperimentStage() == 1) {
-    return [{x: "0005-01-01", y: getInitialValue()}];
+    return [{x: "1000-01-01", y: getInitialValue()}];
   }
   else if(getExperimentStage() == 2) {
     return getFirstYearValues();
@@ -356,7 +357,7 @@ function getExperimentStage() {
 function getSpecificInstructions() {
   var text = "";
 
-  if (getCurrentCondition() == "temperature") { text = "Please draw the <strong>weather forecast</strong> for a large city"; }
+  if (getCurrentCondition() == "temperature") { text = "Please draw the <strong>temperature forecast</strong> for a large city"; }
   else if (getCurrentCondition() == "sales") { text = "Please draw the <strong>sales forecast</strong> for a large company"; }
   else if (getCurrentCondition() == "facebook_friends") { text = "Please draw a graph showing the <strong>number of total Facebook friends</strong> of a 25 year old male"; }
   else if (getCurrentCondition() == "rain") { text = "Please draw the <strong>probability of a rainy day</strong> for a large city"; }
@@ -431,7 +432,7 @@ function graphOnClick(params) {
 // in accordance to the rules
 function addPoint(newItem) {
   // If the experiment is on its second stage and the item is first year, the item shouldnt be added
-  if(!( getExperimentStage() == 2 && firstYear(newItem) ) && nonNegativeYear(newItem)) {
+  if(!( getExperimentStage() == 2 && firstYear(newItem) ) && positiveYear(newItem)) {
     // The item has to be within the acceptable value boundaries
     if( withinValueBoundaries(newItem[0]) ) {
       // and the item is more than X days distant to the rest of the items
@@ -494,15 +495,15 @@ function withinValueBoundaries(item) {
   return value > lowerBound && value < upperBound;
 }
 
-// Returns true if the year of the item is not "000-x"
-function nonNegativeYear(item) {
-  return item[0].x.split("-")[0] != "000";
+// Returns true if the year of the item is positive (i.e., "000-x")
+function positiveYear(item) {
+  return item[0].x.split("-")[0] != "000" && item[0].x.split("-")[0] != "0000";
 }
 
 // Returns true when the item is of the first year
 // Receives an array of objects, with only one item
 function firstYear(item) {
-  return item[0].x.split("-")[0] == "0000";
+  return item[0].x.split("-")[0] == "0001";
 }
 
 function updateItems(items) {
@@ -523,11 +524,16 @@ function checkItems(items) {
   for(var i=0; i < items.length; i++) {
     dateElements = items[i].x.split("-");
 
-    firstMonth = firstMonth || (dateElements[0] == "0000" && dateElements[1] == "01");
+    firstMonth = firstMonth || (dateElements[0] == "0001" && dateElements[1] == "01");
 
-    lastMonth = lastMonth || (dateElements[0] == "0003" && dateElements[1] == "12");
+    lastMonth = lastMonth || (dateElements[0] == "0004" && dateElements[1] == "12");
 
-    lastMonth = lastMonth || (dateElements[0] == "0004" && dateElements[1] == "01");
+    lastMonth = lastMonth || (dateElements[0] == "0005" && dateElements[1] == "01");
+  }
+
+  // If we are on the second stage, then the firstMonth is necessarilly true
+  if(getExperimentStage() == 2){
+    firstMonth = true;
   }
 
   return [firstMonth, lastMonth];
@@ -736,8 +742,9 @@ function getSubConditions() {
 function getLinearUp(base, slopeScale, noiseScale){
   var values = [];
 
-  //var scale = 0.05 * base; // The scale is 5% of the base
-  var scale = 0.025 * ( getYAxisRange()[1] - getYAxisRange()[0] );
+  var percentage = 0.05; // 0.025
+
+  var scale = percentage * ( getYAxisRange()[1] - getYAxisRange()[0] );
 
   var slope = scale * slopeScale; // If the slopeScale is 1, the slope is 5% of the base
 
@@ -761,9 +768,6 @@ function getLinearDown(base, slopeScale){
 // Returns a noise array for the trends
 function generateNoiseArray() {
   var fiveRandom = getFiveRandom();
-
-  console.log(forcedRandomSet);
-  console.log(fiveRandom);
 
   var arrayAverage = getArrayAverage(fiveRandom);
 

@@ -74,14 +74,14 @@
           <p>
             In this study, we will show you an empty plot where you will have
             to graph your prediction for different variables. Please try to make
-            the best predictions you can. You have to imagine the values for the
-            asked variable and then simply draw the points on the plot. The software
+            the best predictions you can. You have to imagine the values for a
+            particular variable and then simply draw the points on the plot. The software
             will automatically connect the points to build a graph.
           </p>
           <p>
-            The experiment consists of <strong>two stages</strong>. In each stage you will plot <strong>six times</strong>,
-            one different variable each time.
-            Please read the specific instructions of each stage carefully, when they appear in the next pages.
+            The experiment consists of <strong>two stages</strong>. In each stage you will provide <strong>six plots</strong>,
+            each one for a different variable.
+            Please read the specific instructions for each stage carefully, when they appear in the next pages.
             Please do not press 'back' on your browser.
           </p>
         </div>
@@ -96,8 +96,11 @@
 
         <ol>
           <li>
-            To draw the graph, just click on the plot to place a point. You can
-            add as many points as you want.
+            To draw the graph, just click on the plot to place a point.
+          </li>
+          <li>
+            You can add as many points as you want.
+            Each point has to be at least one month away from each other.
           </li>
           <li>
             To remove a point, click on it.
@@ -106,7 +109,7 @@
             The points will be automatically connected by a curve.
           </li>
           <li>
-            Press 'Continue' when you are done.
+            Press 'Continue' to start the experiment.
           </li>
         </ol>
 
@@ -135,7 +138,7 @@
               being asked to predict.
             </li>
             <li id="second_section_instruction" style="display:none">
-              <strong>There is real data for the first year only. You have to predict the data for the subsequent years.</strong>
+              <strong>There are real data points for the first year only. You have to predict the data for the subsequent years.</strong>
             </li>
             <li>
               To draw the graph, just click on the plot to place a point. You can
@@ -177,7 +180,9 @@
       <div class="row">
         <h3>Plot</h3>
         <div class="col-md-8">
-          <h4 id="specificInstructions"></h4>
+          <div class="alert alert-success" role="alert">
+            <h4 id="specificInstructions"></h4>
+          </div>
           <p>Try to make an effort to imagine the trends and periodicities that might exist.</p>
           <p>
             - Place at least one point on the <strong>first</strong> month.
@@ -190,7 +195,7 @@
 
         <div class="col-md-4">
           <button type="button" class="btn btn-default"
-            style="float:right; margin-top:36 px;" onclick="removeLastPoint();">
+            style="float:right; margin-top:100px"; onclick="removeLastPoint();">
             Undo
           </button>
         </div>
@@ -258,21 +263,32 @@
     <div class="container" id="thankYouPage" style="display:none;">
       <br />
       <div class="row">
-        <div class="col-md-6">
-          <h1>Thank you</h1>
-          <p>If you would like to read the <strong>research paper</strong> that will be published
-            using the information gatheres in this experiment, please add your email to
-            <a target="_blank" href="http://eepurl.com/cOugvH">this newsletter</a>
-            (it will open on a new tab).</p>
-
-          <p>
-            To complete the study, click here:
-
-            <a href="https://prolific.ac/submissions/complete?cc=YHMPRBJ7">https://prolific.ac/submissions/complete?cc=YHMPRBJ7</a>
-
-          </p>
+        <div class="col-md-10">
+          <h1>Thank you. The experiment has ended.</h1>
+          <div class="alert alert-success" role="alert">
+            <h2>
+              <strong>IMPORTANT</strong>: Please click on this completion URL to show that you have finished the study:
+              <br />
+              <a target="_blank" href="https://prolific.ac/submissions/complete?cc=YHMPRBJ7">https://prolific.ac/submissions/complete?cc=YHMPRBJ7</a>
+              <br />
+              After clicking on the link above, you can safely close this page.
+            </h2>
+          </div>
         </div>
-      </div>
+      </div> <!-- end row -->
+
+      <hr>
+
+      <div class="row">
+        <div class="col-md-8">
+          <h3>Optional</h3>
+          <p>If you would like more information about the <strong>research paper</strong> that will be published
+            using the information gathered in this experiment, please subscribe
+            <a target="_blank" href="http://eepurl.com/cOugvH">this newsletter</a>. This is completely optional.</p>
+        </div>
+      </div> <!-- end row -->
+
+
 
       <br />
       <br />
