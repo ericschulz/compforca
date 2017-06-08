@@ -1,4 +1,13 @@
 Strange results:
+
+  NOT YET APPROVED:
   57ae6994f9e4d00001114eab -- minimum effort in Stage 1
   56814d4dc5767f00121d201a -- looks like no effort but maybe yes?
   59294bd4b68ed80001729749 -- definitely no effort
+  58c4ff360f0c150001ed45a4 -- did not understand the plot?
+  5777d41ff8f7ed00014b4f7e -- VERY linear in stage 1
+
+
+  APPROVED:
+  54905775fdf99b7255546dfe -- pretty stable
+  58c431cf3532d300014d12ff -- very strange
