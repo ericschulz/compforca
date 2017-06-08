@@ -529,6 +529,9 @@ function checkItems(items) {
     lastMonth = lastMonth || (dateElements[0] == "0005" && dateElements[1] == "01");
   }
 
+  // If we are on the second stage, then the firstMonth is necessarilly true
+  firstMonth = (getExperimentStage()==2);
+
   return [firstMonth, lastMonth];
 }
 
@@ -761,9 +764,6 @@ function getLinearDown(base, slopeScale){
 // Returns a noise array for the trends
 function generateNoiseArray() {
   var fiveRandom = getFiveRandom();
-
-  console.log(forcedRandomSet);
-  console.log(fiveRandom);
 
   var arrayAverage = getArrayAverage(fiveRandom);
 
