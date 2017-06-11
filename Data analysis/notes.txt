@@ -13,19 +13,28 @@ Strange results:
   559bbbdafdf99b7ce19d5b3d -- did the person understand the graph?
   590882b8044c120001ccd2a6 -- no data
 
+  5721b3054d5b26001301f651 -- One of the plots I had trouble removing a plot point
+                              that I added accidently, so I just finished the plot
+                              and did the others. The plot that I had trouble with
+                              was sales forecast for large company - part 2. You
+                              can see some points I added accidently in year 3,
+                              and when I couldn't remove them, I just added one plot
+                              point at the end of year 4 and hit continue to do the others.
+                              Sorry about this.
+
 
   NO CODE and NO DATA
-  569e72698ad3f8000674224e
-  5914a7d70ceb0a0001498166
-  55b8113efdf99b4633359b7b
-  59274ec9dd3a97000164ebc1
-  590f48c39905e9000164ef8e
+  569e72698ad3f8000674224e - paid 50p
+  5914a7d70ceb0a0001498166 - paid 50p
+  55b8113efdf99b4633359b7b - paid 50p
+  58904376ec69f60001347937 - paid 50p
+  59107216127b0b00011fabea - paid 50p
+  591d0422f8672e0001136a44 - paid 50p
+  587582545c17910001ea4f39 - paid 50p
 
-  58904376ec69f60001347937
-  59107216127b0b00011fabea
-  591d0422f8672e0001136a44
-  587582545c17910001ea4f39
   577e79ecdcff7d0001c7a534
+  590f48c39905e9000164ef8e
+  59274ec9dd3a97000164ebc1
 
   ----------------------------------------------------------
 
