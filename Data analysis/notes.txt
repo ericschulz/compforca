@@ -7,8 +7,8 @@ Strange results:
   58c4ff360f0c150001ed45a4 -- did not understand the plot?
   5777d41ff8f7ed00014b4f7e -- VERY linear in stage 1
 
-  5908458b1138880001bc77e7 -- REALLY strange. Instructions not understood?
-  58aaff6ff6cc2100012b1130 -- Very strange patterns
+  5908458b1138880001bc77e7 -- REALLY strange. Instructions not understood? <-- remove
+  58aaff6ff6cc2100012b1130 -- Very strange patterns  <-- remove
   57bae6b9017c2d000166f593 -- VERY linear in stage 1
   559bbbdafdf99b7ce19d5b3d -- did the person understand the graph?
   590882b8044c120001ccd2a6 -- no data
@@ -20,7 +20,7 @@ Strange results:
                               can see some points I added accidently in year 3,
                               and when I couldn't remove them, I just added one plot
                               point at the end of year 4 and hit continue to do the others.
-                              Sorry about this.
+                              Sorry about this. <-- remove trial
 
 
   NO CODE and NO DATA
