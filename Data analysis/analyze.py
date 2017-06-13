@@ -381,97 +381,51 @@ def CatmullRomSpline(P0, P1, P2, P3, nPoints=10):
     return C
 
 # Source: Wikipedia, https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
-def CatmullRomChain(P):
+def CatmullRomChain(points):
   """
   Calculate Catmull Rom for a chain of points and return the combined curve.
   """
-  sz = len(P)
+  points = add_border_points(points)
+
+  size = len(points)
 
   # The curve C will contain an array of (x,y) points.
   C = []
-  for i in range(sz-3):
-    c = CatmullRomSpline(P[i], P[i+1], P[i+2], P[i+3])
+  for i in range(size-3):
+    c = CatmullRomSpline(points[i], points[i+1], points[i+2], points[i+3])
 
     C.extend(c)
 
   return C
 
+def add_border_points( points ):
+    # Get the change in x and y between the first and second coordinates.
+    dx = points[1][0] - points[0][0]
+    dy = points[1][1] - points[0][1]
 
-# Returns the distances on the x-axis between two points
-def x_distance( p0, p1 ):
-    return numpy.abs(p0[0] - p1[0])
+    #Then using the change, extrapolate backwards to find a control point.
+    x1 = points[0][0] - dx
+    y1 = points[0][1] - dy
 
-# vim.js implementation, translated to Python
-def _catmullRom (data, alpha=0.5):
-    if alpha == 0:
-        return 'uniform'
-    else:
-        #var p0, p1, p2, p3, bp1, bp2, d1, d2, d3, A, B, N, M;
-        #var d3powA, d2powA, d3pow2A, d2pow2A, d1pow2A, d1powA;
-        d = []
-        #d.append( [ numpy.round(data[0][0]) , numpy.round(data[0][1]) ])
-        d.append( data[0] )
+    # Create the start point from the extrapolated values.
+    start = [x1, y1]
 
-        length = len(data)
-        for i in range(length - 1):
-            p0 = data[0] if i == 0 else data[i - 1]
-            p1 = data[i]
-            p2 = data[i + 1]
-            p3 = data[i + 2] if (i + 2 < length) else p2
+    # Repeat for the end control point.
+    n = len(points) - 1
+    dx = points[n][0] - points[n - 1][0] / 1000
+    dy = points[n][1] - points[n - 1][1] / 1000
 
-            d1 = numpy.sqrt(numpy.power(p0[0] - p1[0], 2) + numpy.power(p0[1] - p1[1], 2))
-            d2 = numpy.sqrt(numpy.power(p1[0] - p2[0], 2) + numpy.power(p1[1] - p2[1], 2))
-            d3 = numpy.sqrt(numpy.power(p2[0] - p3[0], 2) + numpy.power(p2[1] - p3[1], 2))
+    xn = points[n][0] + dx
+    yn = points[n][1] + dy
+    end = [xn, yn]
 
-            # Catmull-Rom to Cubic Bezier conversion matrix
+    #insert the start control point at the start of the points list.
+    final_points = [start] + points
 
-            # A = 2d1^2a + 3d1^a * d2^a + d3^2a
-            # B = 2d3^2a + 3d3^a * d2^a + d2^2a
+    # append the end control ponit to the end of the points list.
+    final_points.append(end)
 
-            # [   0             1            0          0          ]
-            # [   -d2^2a /N     A/N          d1^2a /N   0          ]
-            # [   0             d3^2a /M     B/M        -d2^2a /M  ]
-            # [   0             0            1          0          ]
-
-            d3powA = numpy.power(d3, alpha)
-            d3pow2A = numpy.power(d3, 2 * alpha)
-            d2powA = numpy.power(d2, alpha)
-            d2pow2A = numpy.power(d2, 2 * alpha)
-            d1powA = numpy.power(d1, alpha)
-            d1pow2A = numpy.power(d1, 2 * alpha)
-
-            A = 2 * d1pow2A + 3 * d1powA * d2powA + d2pow2A
-            B = 2 * d3pow2A + 3 * d3powA * d2powA + d2pow2A
-
-            N = 3 * d1powA * (d1powA + d2powA)
-            if (N > 0):
-                N = 1 / N
-
-            M = 3 * d3powA * (d3powA + d2powA)
-            if (M > 0):
-                M = 1 / M
-
-            bp1 = [
-                ((-d2pow2A * p0[0] + A * p1[0] + d1pow2A * p2[0]) * N),
-                ((-d2pow2A * p0[1] + A * p1[1] + d1pow2A * p2[1]) * N)
-            ]
-
-            bp2 = [
-                (( d3pow2A * p1[0] + B * p2[0] - d2pow2A * p3[0]) * M),
-                (( d3pow2A * p1[1] + B * p2[1] - d2pow2A * p3[1]) * M)
-            ]
-
-            if (bp1[0] == 0 and bp1[1] == 0):
-                bp1 = p1
-
-            if (bp2[0] == 0 and bp2[1] == 0):
-                bp2 = p2
-
-            d.append( bp1 )
-            d.append( bp2 )
-            d.append( p2 )
-
-        return d
+    return final_points
 
 # Transforms an array of points to a trace:
 def points_to_trace( points ):
@@ -492,67 +446,10 @@ def points_to_trace( points ):
 
 
 def plotCatmull( data ):
-    points = _catmullRom(data)
+    points = CatmullRomChain(data)
 
-    points_2 = bezier_curve(points)
-
-    #trace = points_to_trace(points_2)
-
-    trace = go.Scatter(
-        x = points_2[0],
-        y = points_2[1],
-        mode='lines+markers'
-    )
+    trace = points_to_trace(points)
 
     plotly.offline.plot([trace], filename='basic-line')
 
-#######################
-
-def factorial(n):
-    if n == 0:
-        return 1
-
-    f = 1
-    for i in range(n):
-        f = (i+1) * f
-    return f
-
-def comb(n, k):
-    return factorial(n) / factorial(k) / factorial(n - k)
-
-def bernstein_poly(i, n, t):
-    """
-     The Bernstein polynomial of n, i as a function of t
-    """
-
-    return comb(n, i) * ( t**(n-i) ) * (1 - t)**i
-
-
-def bezier_curve(points, nTimes=10):
-    """
-       Given a set of control points, return the
-       bezier curve defined by the control points.
-
-       points should be a list of lists, or list of tuples
-       such as [ [1,1],
-                 [2,3],
-                 [4,5], ..[Xn, Yn] ]
-        nTimes is the number of time steps, defaults to 1000
-
-        See http://processingjs.nihongoresources.com/bezierinfo/
-    """
-
-    nPoints = len(points)
-    xPoints = numpy.array([p[0] for p in points])
-    yPoints = numpy.array([p[1] for p in points])
-
-    t = numpy.linspace(0.0, 1.0, nTimes)
-
-    polynomial_array = numpy.array([ bernstein_poly(i, nPoints-1, t) for i in range(0, nPoints)   ])
-
-    xvals = numpy.dot(xPoints, polynomial_array)
-    yvals = numpy.dot(yPoints, polynomial_array)
-
-    return xvals, yvals
-
-plotCatmull([[0,0],[10,10],[11,5],[20,20],[20.1,20]])
+plotCatmull([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
