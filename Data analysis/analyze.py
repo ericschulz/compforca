@@ -31,7 +31,7 @@ import numpy
 filepath = 'C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/bayesian-forecasting-export.json'
 dataset = json.load(open(filepath, 'r'))
 
-subjects = create_subjects()
+#subjects = create_subjects()
 
 ##############################################################
 ##                     JSON PROCESSING                      ##
@@ -341,7 +341,7 @@ class Response:
 ##############################################################
 
 # Source: Wikipedia, https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
-def CatmullRomSpline(P0, P1, P2, P3, nPoints=100):
+def CatmullRomSpline(P0, P1, P2, P3, nPoints=10):
     """
     P0, P1, P2, and P3 should be (x,y) point pairs that define the Catmull-Rom spline.
     nPoints is the number of points to include in this curve segment.
@@ -360,6 +360,8 @@ def CatmullRomSpline(P0, P1, P2, P3, nPoints=100):
     t1 = tj(t0, P0, P1)
     t2 = tj(t1, P1, P2)
     t3 = tj(t2, P2, P3)
+
+    #nPoints = numpy.sqrt ( numpy.power(P2[0]-P1[0], 2) + numpy.power(P2[1]-P1[1], 2) )
 
     # Only calculate points between P1 and P2
     t = numpy.linspace(t1,t2,nPoints)
@@ -389,10 +391,15 @@ def CatmullRomChain(P):
   C = []
   for i in range(sz-3):
     c = CatmullRomSpline(P[i], P[i+1], P[i+2], P[i+3])
+
     C.extend(c)
 
   return C
 
+
+# Returns the distances on the x-axis between two points
+def x_distance( p0, p1 ):
+    return numpy.abs(p0[0] - p1[0])
 
 # vim.js implementation, translated to Python
 def _catmullRom (data, alpha=0.5):
@@ -477,7 +484,8 @@ def points_to_trace( points ):
 
     trace = go.Scatter(
         x = x,
-        y = y
+        y = y,
+        mode = 'lines+markers'
     )
 
     return trace
@@ -486,6 +494,65 @@ def points_to_trace( points ):
 def plotCatmull( data ):
     points = _catmullRom(data)
 
-    trace = points_to_trace(points)
+    points_2 = bezier_curve(points)
+
+    #trace = points_to_trace(points_2)
+
+    trace = go.Scatter(
+        x = points_2[0],
+        y = points_2[1],
+        mode='lines+markers'
+    )
 
     plotly.offline.plot([trace], filename='basic-line')
+
+#######################
+
+def factorial(n):
+    if n == 0:
+        return 1
+
+    f = 1
+    for i in range(n):
+        f = (i+1) * f
+    return f
+
+def comb(n, k):
+    return factorial(n) / factorial(k) / factorial(n - k)
+
+def bernstein_poly(i, n, t):
+    """
+     The Bernstein polynomial of n, i as a function of t
+    """
+
+    return comb(n, i) * ( t**(n-i) ) * (1 - t)**i
+
+
+def bezier_curve(points, nTimes=10):
+    """
+       Given a set of control points, return the
+       bezier curve defined by the control points.
+
+       points should be a list of lists, or list of tuples
+       such as [ [1,1],
+                 [2,3],
+                 [4,5], ..[Xn, Yn] ]
+        nTimes is the number of time steps, defaults to 1000
+
+        See http://processingjs.nihongoresources.com/bezierinfo/
+    """
+
+    nPoints = len(points)
+    xPoints = numpy.array([p[0] for p in points])
+    yPoints = numpy.array([p[1] for p in points])
+
+    t = numpy.linspace(0.0, 1.0, nTimes)
+
+    polynomial_array = numpy.array([ bernstein_poly(i, nPoints-1, t) for i in range(0, nPoints)   ])
+
+    xvals = numpy.dot(xPoints, polynomial_array)
+    yvals = numpy.dot(yPoints, polynomial_array)
+
+    return xvals, yvals
+
+plotCatmull([[0,0],[10,10],[11,5],[20,20],[20.1,20]])
