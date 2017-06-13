@@ -19,6 +19,8 @@ import plotly.graph_objs as go
 # Datetime
 import datetime
 
+import numpy
+
 
 
 ##############################################################
@@ -332,3 +334,133 @@ class Response:
             return 'down'
         else:
             return 'error'
+
+
+##############################################################
+##                         LIBRARIES                        ##
+##############################################################
+
+# Source: Wikipedia, https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+def CatmullRomSpline(P0, P1, P2, P3, nPoints=100):
+    """
+    P0, P1, P2, and P3 should be (x,y) point pairs that define the Catmull-Rom spline.
+    nPoints is the number of points to include in this curve segment.
+    """
+    # Convert the points to numpy so that we can do array multiplication
+    P0, P1, P2, P3 = map(numpy.array, [P0, P1, P2, P3])
+
+    # Calculate t0 to t4
+    alpha = 0.5
+    def tj(ti, Pi, Pj):
+        xi, yi = Pi
+        xj, yj = Pj
+        return ( ( (xj-xi)**2 + (yj-yi)**2 )**0.5 )**alpha + ti
+
+    t0 = 0
+    t1 = tj(t0, P0, P1)
+    t2 = tj(t1, P1, P2)
+    t3 = tj(t2, P2, P3)
+
+    # Only calculate points between P1 and P2
+    t = numpy.linspace(t1,t2,nPoints)
+
+    # Reshape so that we can multiply by the points P0 to P3
+    # and get a point for each value of t.
+    t = t.reshape(len(t),1)
+
+    A1 = (t1-t)/(t1-t0)*P0 + (t-t0)/(t1-t0)*P1
+    A2 = (t2-t)/(t2-t1)*P1 + (t-t1)/(t2-t1)*P2
+    A3 = (t3-t)/(t3-t2)*P2 + (t-t2)/(t3-t2)*P3
+
+    B1 = (t2-t)/(t2-t0)*A1 + (t-t0)/(t2-t0)*A2
+    B2 = (t3-t)/(t3-t1)*A2 + (t-t1)/(t3-t1)*A3
+
+    C  = (t2-t)/(t2-t1)*B1 + (t-t1)/(t2-t1)*B2
+    return C
+
+# Source: Wikipedia, https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+def CatmullRomChain(P):
+  """
+  Calculate Catmull Rom for a chain of points and return the combined curve.
+  """
+  sz = len(P)
+
+  # The curve C will contain an array of (x,y) points.
+  C = []
+  for i in range(sz-3):
+    c = CatmullRomSpline(P[i], P[i+1], P[i+2], P[i+3])
+    C.extend(c)
+
+  return C
+
+
+# vim.js implementation, translated to Python
+def _catmullRom (data, alpha=0.5):
+    if alpha == 0:
+        return 'uniform'
+    else:
+        #var p0, p1, p2, p3, bp1, bp2, d1, d2, d3, A, B, N, M;
+        #var d3powA, d2powA, d3pow2A, d2pow2A, d1pow2A, d1powA;
+        d = []
+        d.push( [ Math.round(data[0][0]) , Math.round(data[0][1]) ])
+
+        length = data.length;
+        for i in range(length - 1):
+            p0 = data[0] if i == 0 else data[i - 1]
+            p1 = data[i]
+            p2 = data[i + 1]
+            p3 = data[i + 2] if (i + 2 < length) else p2
+
+            d1 = Math.sqrt(numpy.power(p0[0] - p1[0], 2) + numpy.power(p0[1] - p1[1], 2))
+            d2 = Math.sqrt(numpy.power(p1[0] - p2[0], 2) + numpy.power(p1[1] - p2[1], 2))
+            d3 = Math.sqrt(numpy.power(p2[0] - p3[0], 2) + numpy.power(p2[1] - p3[1], 2))
+
+            # Catmull-Rom to Cubic Bezier conversion matrix
+
+            # A = 2d1^2a + 3d1^a * d2^a + d3^2a
+            # B = 2d3^2a + 3d3^a * d2^a + d2^2a
+
+            # [   0             1            0          0          ]
+            # [   -d2^2a /N     A/N          d1^2a /N   0          ]
+            # [   0             d3^2a /M     B/M        -d2^2a /M  ]
+            # [   0             0            1          0          ]
+
+            d3powA = numpy.power(d3, alpha);
+            d3pow2A = numpy.power(d3, 2 * alpha);
+            d2powA = numpy.power(d2, alpha);
+            d2pow2A = numpy.power(d2, 2 * alpha);
+            d1powA = numpy.power(d1, alpha);
+            d1pow2A = numpy.power(d1, 2 * alpha);
+
+            A = 2 * d1pow2A + 3 * d1powA * d2powA + d2pow2A;
+            B = 2 * d3pow2A + 3 * d3powA * d2powA + d2pow2A;
+
+            N = 3 * d1powA * (d1powA + d2powA);
+            if (N > 0):
+                N = 1 / N
+
+            M = 3 * d3powA * (d3powA + d2powA);
+            if (M > 0):
+                M = 1 / M
+
+            bp1 = {
+                screen_x: ((-d2pow2A * p0[0] + A * p1[0] + d1pow2A * p2[0]) * N),
+                screen_y: ((-d2pow2A * p0[1] + A * p1[1] + d1pow2A * p2[1]) * N)
+            }
+
+            bp2 = {
+                screen_x: (( d3pow2A * p1[0] + B * p2[0] - d2pow2A * p3[0]) * M),
+                screen_y: (( d3pow2A * p1[1] + B * p2[1] - d2pow2A * p3[1]) * M)
+            }
+
+            if (bp1[0] == 0 and bp1[1] == 0):
+                bp1 = p1;
+
+            if (bp2[0] == 0 and bp2[1] == 0):
+                bp2 = p2;
+
+            d.append( [ bp1[0] , bp1[1] ])
+            d.append( [ bp2[0] , bp2[1] ])
+            d.append( [ p2[0]  , p2[1]  ])
+
+        return d
