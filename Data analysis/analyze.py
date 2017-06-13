@@ -402,18 +402,19 @@ def _catmullRom (data, alpha=0.5):
         #var p0, p1, p2, p3, bp1, bp2, d1, d2, d3, A, B, N, M;
         #var d3powA, d2powA, d3pow2A, d2pow2A, d1pow2A, d1powA;
         d = []
-        d.push( [ Math.round(data[0][0]) , Math.round(data[0][1]) ])
+        #d.append( [ numpy.round(data[0][0]) , numpy.round(data[0][1]) ])
+        d.append( data[0] )
 
-        length = data.length;
+        length = len(data)
         for i in range(length - 1):
             p0 = data[0] if i == 0 else data[i - 1]
             p1 = data[i]
             p2 = data[i + 1]
             p3 = data[i + 2] if (i + 2 < length) else p2
 
-            d1 = Math.sqrt(numpy.power(p0[0] - p1[0], 2) + numpy.power(p0[1] - p1[1], 2))
-            d2 = Math.sqrt(numpy.power(p1[0] - p2[0], 2) + numpy.power(p1[1] - p2[1], 2))
-            d3 = Math.sqrt(numpy.power(p2[0] - p3[0], 2) + numpy.power(p2[1] - p3[1], 2))
+            d1 = numpy.sqrt(numpy.power(p0[0] - p1[0], 2) + numpy.power(p0[1] - p1[1], 2))
+            d2 = numpy.sqrt(numpy.power(p1[0] - p2[0], 2) + numpy.power(p1[1] - p2[1], 2))
+            d3 = numpy.sqrt(numpy.power(p2[0] - p3[0], 2) + numpy.power(p2[1] - p3[1], 2))
 
             # Catmull-Rom to Cubic Bezier conversion matrix
 
@@ -425,42 +426,66 @@ def _catmullRom (data, alpha=0.5):
             # [   0             d3^2a /M     B/M        -d2^2a /M  ]
             # [   0             0            1          0          ]
 
-            d3powA = numpy.power(d3, alpha);
-            d3pow2A = numpy.power(d3, 2 * alpha);
-            d2powA = numpy.power(d2, alpha);
-            d2pow2A = numpy.power(d2, 2 * alpha);
-            d1powA = numpy.power(d1, alpha);
-            d1pow2A = numpy.power(d1, 2 * alpha);
+            d3powA = numpy.power(d3, alpha)
+            d3pow2A = numpy.power(d3, 2 * alpha)
+            d2powA = numpy.power(d2, alpha)
+            d2pow2A = numpy.power(d2, 2 * alpha)
+            d1powA = numpy.power(d1, alpha)
+            d1pow2A = numpy.power(d1, 2 * alpha)
 
-            A = 2 * d1pow2A + 3 * d1powA * d2powA + d2pow2A;
-            B = 2 * d3pow2A + 3 * d3powA * d2powA + d2pow2A;
+            A = 2 * d1pow2A + 3 * d1powA * d2powA + d2pow2A
+            B = 2 * d3pow2A + 3 * d3powA * d2powA + d2pow2A
 
-            N = 3 * d1powA * (d1powA + d2powA);
+            N = 3 * d1powA * (d1powA + d2powA)
             if (N > 0):
                 N = 1 / N
 
-            M = 3 * d3powA * (d3powA + d2powA);
+            M = 3 * d3powA * (d3powA + d2powA)
             if (M > 0):
                 M = 1 / M
 
-            bp1 = {
-                screen_x: ((-d2pow2A * p0[0] + A * p1[0] + d1pow2A * p2[0]) * N),
-                screen_y: ((-d2pow2A * p0[1] + A * p1[1] + d1pow2A * p2[1]) * N)
-            }
+            bp1 = [
+                ((-d2pow2A * p0[0] + A * p1[0] + d1pow2A * p2[0]) * N),
+                ((-d2pow2A * p0[1] + A * p1[1] + d1pow2A * p2[1]) * N)
+            ]
 
-            bp2 = {
-                screen_x: (( d3pow2A * p1[0] + B * p2[0] - d2pow2A * p3[0]) * M),
-                screen_y: (( d3pow2A * p1[1] + B * p2[1] - d2pow2A * p3[1]) * M)
-            }
+            bp2 = [
+                (( d3pow2A * p1[0] + B * p2[0] - d2pow2A * p3[0]) * M),
+                (( d3pow2A * p1[1] + B * p2[1] - d2pow2A * p3[1]) * M)
+            ]
 
             if (bp1[0] == 0 and bp1[1] == 0):
-                bp1 = p1;
+                bp1 = p1
 
             if (bp2[0] == 0 and bp2[1] == 0):
-                bp2 = p2;
+                bp2 = p2
 
-            d.append( [ bp1[0] , bp1[1] ])
-            d.append( [ bp2[0] , bp2[1] ])
-            d.append( [ p2[0]  , p2[1]  ])
+            d.append( bp1 )
+            d.append( bp2 )
+            d.append( p2 )
 
         return d
+
+# Transforms an array of points to a trace:
+def points_to_trace( points ):
+    x = []
+    y = []
+
+    for p in points:
+        x.append(p[0])
+        y.append(p[1])
+
+    trace = go.Scatter(
+        x = x,
+        y = y
+    )
+
+    return trace
+
+
+def plotCatmull( data ):
+    points = _catmullRom(data)
+
+    trace = points_to_trace(points)
+
+    plotly.offline.plot([trace], filename='basic-line')
