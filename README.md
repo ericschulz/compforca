@@ -24,7 +24,6 @@ This contains the collected data of our experiments:
 - analyze.py: the classes and functions to analyze the raw data
 
 
-
 ## Thesis
 
 Currently, it only contains the proposal.
