@@ -1,5 +1,4 @@
 # exec(open('C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/analyze.py').read())
-# s = subjects[0]
 # pip install plotly
 
 
@@ -314,8 +313,8 @@ class Response:
     def transform_date( self, dateString ):
 
         # "Add" 2000 years to every year by replacing '000x' to '200x',
-        # beecause the year 0000 breaks Python)
-        dateString.replace('000', '200')
+        # because the year 0000 breaks Python)
+        dateString = dateString.replace('000', '200')
 
         return datetime.datetime.strptime(dateString, "%Y-%m-%d").date()
 
@@ -339,14 +338,84 @@ class Response:
         else:
             return 'error'
 
-    def get_items_as_points( self ):
-        #TODO
-        1+1
+    # Returns the items as a list of points: [{x0, y0}, {x1, y1}, {x2, y2}, ...]
+    # integer_dates: (Boolean) True if the dates have to be integers
+    def get_points( self, integer_dates = False):
+        points = []
 
-    # Returns the Catmull-Rom points of the current Response
+        # For each item, create and add a new point
+        for i in range(len(self.items['x'])):
+
+            y = self.items['y'][i]
+
+            if integer_dates:
+                # The number of days between the target date and the 31st of
+                # december of 2000. Given the data, the least integer will be 0
+                x = (self.items['x'][i] - datetime.date(2000, 12, 31)).days
+            else:
+                x = self.items['x'][i]
+
+            points.append([ x, y ])
+
+        return points
+
+    # Returns the RAW Centripetal Catmull-Rom points of the current Response
+    def get_raw_catmull_rom( self ):
+        # 1500 Catmull-Rom points because it must be larger than 4*365=1460,
+        # which is the number of days in four years, hence the minimum number of points
+        # required in case the participant only decided to place two points
+        return catmull_rom_chain(self.get_points(True), 1500)
+
+    # Returns the FILTERED Centripetal Catmull-Rom points of the current Response
+    # By filtered, it means there is one point per day
     def get_catmull_rom( self ):
-        #TODO
-        chain = catmull_rom_chain(self.items)
+        spline = self.get_raw_catmull_rom()
+
+        # Get the 'x' value for the first and last point of the spline
+        firstX = int(round(spline[0][0]))
+        lastX = int(round(spline[len(spline)-1][0]))
+
+        searchIndex = 0
+
+        filteredPoints = []
+
+        # For each of the x values that need to be filled with a value...
+        for x in range(firstX, lastX + 1):
+            # Search for the point that it closest to it, starting with the search
+            # at the searchIndex
+            searchIndex = self.__find_closest_x(spline, x, searchIndex)
+
+            # Add the found point to the filteredPoints list
+            filteredPoints.append( [x, spline[searchIndex][1]] )
+
+        return filteredPoints
+
+    # Returns the index of the point which has the closest X value to the targetValue
+    # The search is started in startSearchOn
+    def __find_closest_x( self, points, targetValue, startSearchOn=0):
+        minimumDistance = 999999999 # Very large number
+        indexOfMinimum = -1 # Index where the minimum distance to the target is found
+
+        # Search on the entire length of the
+        for i in range(startSearchOn, len(points)):
+            distance = abs(targetValue - points[i][0])
+
+            # If the new distance is smaller than the current minimum distance, save it
+            if distance <= minimumDistance:
+                minimumDistance = distance
+                indexOfMinimum = i
+            else:
+                # Given that the distance should decrease until the point is passed,
+                # if the new distance is larger than the minimum, then the search is over
+                break
+
+        # Return the index where the minimum distance was found
+        return indexOfMinimum
+
+    # Plots the Centripetal Catmull-Rom of the current Response
+    def plot_catmull_rom( self ):
+        plot_catmull_rom(self.get_catmull_rom())
+
 
 
 ##############################################################
@@ -354,7 +423,7 @@ class Response:
 ##############################################################
 
 # Source: Wikipedia, https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
-def CatmullRomSpline(P0, P1, P2, P3, nPoints=10):
+def catmull_rom_spline(P0, P1, P2, P3, nPoints=10):
     """
     P0, P1, P2, and P3 should be (x,y) point pairs that define the Catmull-Rom spline.
     nPoints is the number of points to include in this curve segment.
@@ -394,7 +463,7 @@ def CatmullRomSpline(P0, P1, P2, P3, nPoints=10):
     return C
 
 # Source: Wikipedia, https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
-def catmull_rom_chain(points):
+def catmull_rom_chain(points, nPointsCatmullRom = 10):
   """
   Calculate Catmull Rom for a chain of points and return the combined curve.
   """
@@ -405,20 +474,22 @@ def catmull_rom_chain(points):
   # The curve C will contain an array of (x,y) points.
   C = []
   for i in range(size-3):
-    c = CatmullRomSpline(points[i], points[i+1], points[i+2], points[i+3])
+    c = catmull_rom_spline(points[i], points[i+1], points[i+2], points[i+3], nPointsCatmullRom)
 
     C.extend(c)
 
   return C
 
 def add_border_points( points ):
+    diff_resolution = 10
+
     # Get the change in x and y between the first and second coordinates.
     dx = points[1][0] - points[0][0]
     dy = points[1][1] - points[0][1]
 
     #Then using the change, extrapolate backwards to find a control point.
-    x1 = points[0][0] - (dx / 1000)
-    y1 = points[0][1] - (dy / 1000)
+    x1 = points[0][0] - (dx / diff_resolution)
+    y1 = points[0][1] - (dy / diff_resolution)
 
     # Create the start point from the extrapolated values.
     start = [x1, y1]
@@ -428,8 +499,8 @@ def add_border_points( points ):
     dx = points[n][0] - points[n - 1][0]
     dy = points[n][1] - points[n - 1][1]
 
-    xn = points[n][0] + (dx / 1000)
-    yn = points[n][1] + (dy / 1000)
+    xn = points[n][0] + (dx / diff_resolution)
+    yn = points[n][1] + (dy / diff_resolution)
     end = [xn, yn]
 
     #insert the start control point at the start of the points list.
@@ -458,13 +529,14 @@ def points_to_trace( points ):
     return trace
 
 
-def plot_catmull_rom( data ):
-    points = catmull_rom_chain(data)
+def plot_catmull_rom( points ):
+    #points = catmull_rom_chain(data, 1500)
 
     trace = points_to_trace(points)
 
     plotly.offline.plot([trace], filename='basic-line')
 
 # Start:
-plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
+#plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
 subjects = create_subjects()
+s = subjects[0]
