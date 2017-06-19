@@ -110,9 +110,9 @@ is a Response (i.e., each element in the historicalData list of the json).
 
 ### Plot all the curves (of Stage II) associated to a target variable
 
-- *variable*: (String) {'temperature', 'rain', 'sales', 'gym_memberships', 'wage', 'facebook_friends'}. Name of the variable to be plotted
-- *trend*: (String) {'stable', 'up', 'down'}. The slope of the trend.
-- *noiseIndex*: Integer {0, 1, 2}. Which of the three noise sets to target
+- `variable`: (String) {'temperature', 'rain', 'sales', 'gym_memberships', 'wage', 'facebook_friends'}. Name of the variable to be plotted
+- `trend`: (String) {'stable', 'up', 'down'}. The slope of the trend.
+- `noiseIndex`: Integer {0, 1, 2}. Which of the three noise sets to target
 
         plot_variable(variable, trend='stable', noiseIndex=0)
 

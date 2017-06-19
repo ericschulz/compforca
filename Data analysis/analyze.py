@@ -166,8 +166,8 @@ class Subject:
 
         return responses
 
-    #################### GETTERS ####################
 
+    #################### GETTERS ####################
 
     # Returns the processed responses for a specific variable and stage
     def get_response( self, variable, stage, subcondition='' ):
@@ -210,6 +210,7 @@ class Subject:
             return 'error'
 
         #print (str(r['y'][0]) + ',' + str(r['y'][1]) + ',' + str(r['y'][2]) + ',' + str(r['y'][3]) + ',' + str(r['y'][4]))
+
 
     # Displays a plot for a single subject, and a single variable
     # variable can be {rain, gym_memberships, temperature, wage, facebook_friends, sales}
@@ -311,9 +312,10 @@ class Response:
     # Receives a date string with format "yyyy-mm-dd" and returns the
     # corresponding Date object
     def transform_date( self, dateString ):
-        # Exception protection. Movement of one day. TODO: This should be fixed on the experiment itself.
-        if dateString == '0000-12-31':
-            dateString = '0001-01-01'
+
+        # "Add" 2000 years to every year by replacing '000x' to '200x',
+        # beecause the year 0000 breaks Python)
+        dateString.replace('000', '200')
 
         return datetime.datetime.strptime(dateString, "%Y-%m-%d").date()
 
@@ -336,6 +338,15 @@ class Response:
             return 'down'
         else:
             return 'error'
+
+    def get_items_as_points( self ):
+        #TODO
+        1+1
+
+    # Returns the Catmull-Rom points of the current Response
+    def get_catmull_rom( self ):
+        #TODO
+        chain = catmull_rom_chain(self.items)
 
 
 ##############################################################
@@ -383,7 +394,7 @@ def CatmullRomSpline(P0, P1, P2, P3, nPoints=10):
     return C
 
 # Source: Wikipedia, https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
-def CatmullRomChain(points):
+def catmull_rom_chain(points):
   """
   Calculate Catmull Rom for a chain of points and return the combined curve.
   """
@@ -406,19 +417,19 @@ def add_border_points( points ):
     dy = points[1][1] - points[0][1]
 
     #Then using the change, extrapolate backwards to find a control point.
-    x1 = points[0][0] - dx
-    y1 = points[0][1] - dy
+    x1 = points[0][0] - (dx / 1000)
+    y1 = points[0][1] - (dy / 1000)
 
     # Create the start point from the extrapolated values.
     start = [x1, y1]
 
     # Repeat for the end control point.
     n = len(points) - 1
-    dx = points[n][0] - points[n - 1][0] / 1000
-    dy = points[n][1] - points[n - 1][1] / 1000
+    dx = points[n][0] - points[n - 1][0]
+    dy = points[n][1] - points[n - 1][1]
 
-    xn = points[n][0] + dx
-    yn = points[n][1] + dy
+    xn = points[n][0] + (dx / 1000)
+    yn = points[n][1] + (dy / 1000)
     end = [xn, yn]
 
     #insert the start control point at the start of the points list.
@@ -447,13 +458,13 @@ def points_to_trace( points ):
     return trace
 
 
-def plotCatmull( data ):
-    points = CatmullRomChain(data)
+def plot_catmull_rom( data ):
+    points = catmull_rom_chain(data)
 
     trace = points_to_trace(points)
 
     plotly.offline.plot([trace], filename='basic-line')
 
 # Start:
-plotCatmull([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
+plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
 subjects = create_subjects()
