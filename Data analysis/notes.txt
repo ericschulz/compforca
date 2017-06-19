@@ -8,7 +8,7 @@ Strange results:
   5777d41ff8f7ed00014b4f7e -- VERY linear in stage 1
 
   5908458b1138880001bc77e7 -- REALLY strange. Instructions not understood? <-- remove
-  58aaff6ff6cc2100012b1130 -- Very strange patterns  <-- remove
+  58aaff6ff6cc2100012b1130 -- Very strange patterns  <-- remove (density guy)
   57bae6b9017c2d000166f593 -- VERY linear in stage 1
   559bbbdafdf99b7ce19d5b3d -- did the person understand the graph?
   590882b8044c120001ccd2a6 -- no data
@@ -32,9 +32,9 @@ Strange results:
   591d0422f8672e0001136a44 - paid 50p
   587582545c17910001ea4f39 - paid 50p
 
-  577e79ecdcff7d0001c7a534
-  590f48c39905e9000164ef8e
-  59274ec9dd3a97000164ebc1
+  577e79ecdcff7d0001c7a534 - paid 50p
+  590f48c39905e9000164ef8e - paid 50p (rejected) (did not withdraw)
+  59274ec9dd3a97000164ebc1 - paid in full (did not withdraw)
 
   ----------------------------------------------------------
 
