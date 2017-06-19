@@ -31,8 +31,6 @@ import numpy
 filepath = 'C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/bayesian-forecasting-export.json'
 dataset = json.load(open(filepath, 'r'))
 
-#subjects = create_subjects()
-
 ##############################################################
 ##                     JSON PROCESSING                      ##
 ##############################################################
@@ -452,4 +450,6 @@ def plotCatmull( data ):
 
     plotly.offline.plot([trace], filename='basic-line')
 
+# Start:
 plotCatmull([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
+subjects = create_subjects()
