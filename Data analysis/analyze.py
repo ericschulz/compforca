@@ -44,6 +44,10 @@ def create_subjects():
 
     return participants
 
+# Plots all the curves (Stage II) associated to a target variable
+# variable: (String) name of the variable to be plotted
+# trend: (String) {'stable', 'up', 'down'}
+# noiseIndex: Integer {0, 1, 2}. Which of the three noise sets to target
 def plot_variable(variable, trend='stable', noiseIndex=0):
     # Get the responses for the target variable
     target_responses = responses(variable, trend, noiseIndex)
