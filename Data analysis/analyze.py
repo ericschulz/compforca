@@ -307,6 +307,13 @@ class Response:
                 )
             )
 
+    # Returns the number of items
+    def get_number_of_items( self ):
+        if self.items['x'] == self.items['y']:
+            return self.items['x']
+        else:
+            return 'error'
+
 
     # Receives a date string with format "yyyy-mm-dd" and returns the
     # corresponding Date object
@@ -349,9 +356,7 @@ class Response:
             y = self.items['y'][i]
 
             if integer_dates:
-                # The number of days between the target date and the 31st of
-                # december of 2000. Given the data, the least integer will be 0
-                x = (self.items['x'][i] - datetime.date(2000, 12, 31)).days
+                x = self.__date_to_days(self.items['x'][i])
             else:
                 x = self.items['x'][i]
 
@@ -361,14 +366,49 @@ class Response:
 
     # Returns the RAW Centripetal Catmull-Rom points of the current Response
     def get_raw_catmull_rom( self ):
-        # 1500 Catmull-Rom points because it must be larger than 4*365=1460,
-        # which is the number of days in four years, hence the minimum number of points
-        # required in case the participant only decided to place two points
-        return catmull_rom_chain(self.get_points(True), 1500)
+        # Thousands of Catmull-Rom points because we want great smoothness
+        nPoints = 2000
+
+        return catmull_rom_chain(self.get_points(True), nPoints)
 
     # Returns the FILTERED Centripetal Catmull-Rom points of the current Response
     # By filtered, it means there is one point per day
     def get_catmull_rom( self ):
+        if self.get_number_of_items == 2:
+            return self.__get_linear_interpolation()
+        else: # Length larger than 2, because the minimum length is 2
+            return self.__get_catmull_rom()
+
+    # Returns the linear interpolation of the items
+    def __get_linear_interpolation( self ):
+        # Get the 'x' and 'y' values of the first and last point
+        firstX = self.__date_to_days(self.items['x'][0])
+        lastX = self.__date_to_days(self.items['x'][len(self.items)-1])
+
+        firstY = self.items['y'][1]
+        lastY = self.items['y'][len(self.items)-1]
+
+        # Calculate the slope and the Y-intercept
+        slope = (lastY - firstY)/(lastX - firstX)
+        yIntercept = firstY - firstX * slope
+
+        # Create the points, from the first one to the last one, using the slope
+        points = []
+        for x in range(firstX, lastX):
+            y = yIntercept + slope * x
+
+            points.append([x, y])
+
+        return points
+
+    # Returns number of days between the target date and the 31st of
+    # december of 2000. Given the data, the least integer will be 0
+    def __date_to_days( self, date ):
+        return (date - datetime.date(2000, 12, 31)).days
+
+    # Returns the Catmull interpolation. Only to be used when the
+    # number of items is three or more
+    def __get_catmull_rom( self ):
         spline = self.get_raw_catmull_rom()
 
         # Get the 'x' value for the first and last point of the spline
