@@ -75,4 +75,18 @@ is a Response (i.e., each element in the historicalData list of the json).
 ## Useful functions in analyze.py
 
 ### Check the responses of a specific user (by User ID). It creates plots on the browser.
-plot_pid('a001')
+
+        plot_pid('a001')
+
+### Plot all the curves (of Stage II) associated to a target variable
+
+variable: (String) name of the variable to be plotted
+trend: (String) {'stable', 'up', 'down'}
+noiseIndex: Integer {0, 1, 2}. Which of the three noise sets to target
+
+        plot_variable(variable, trend='stable', noiseIndex=0)
+
+
+### Prints the IDs of those subjects that were deemed invalid because of their responses
+
+        print_invalid_subjects()
