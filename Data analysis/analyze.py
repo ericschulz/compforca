@@ -90,14 +90,14 @@ def subjects_noise(noiseIndex):
 
     return array
 
-# Plots the data for a certain Prolific ID:
-def plot_pid( prolificId ):
-    get_subject_pid(prolificId).plot()
+# Plots the data for a certain User ID:
+def plot_pid( userId ):
+    get_subject_pid(userId).plot()
 
-# Returns the subject with the target Prolific ID
-def get_subject_pid( prolificId ):
+# Returns the subject with the target User ID
+def get_subject_pid( userId ):
     for s in subjects:
-        if s.userId == prolificId:
+        if s.userId == userId:
             return s
 
 # Prints the invalid subjects
@@ -307,6 +307,11 @@ class Response:
                 )
             )
 
+    # Returns the trace of the spline
+    def get_spline_trace( self ):
+        # Calculate the Catmull-Rom spline, and then transform the points to a Trace
+        return self.__points_to_trace(self.get_catmull_rom())
+
     # Returns the number of items
     def get_number_of_items( self ):
         if self.items['x'] == self.items['y']:
@@ -454,7 +459,28 @@ class Response:
 
     # Plots the Centripetal Catmull-Rom of the current Response
     def plot_catmull_rom( self ):
-        plot_catmull_rom(self.get_catmull_rom())
+        points = self.get_catmull_rom()
+
+        trace = self.__points_to_trace(points)
+
+        plotly.offline.plot([trace], filename='basic-line')
+
+    # Transforms an array of points to a trace:
+    def __points_to_trace( self, points ):
+        x = []
+        y = []
+
+        for p in points:
+            x.append(p[0])
+            y.append(p[1])
+
+        trace = go.Scatter(
+            x = x,
+            y = y,
+            mode = 'lines+markers'
+        )
+
+        return trace
 
 
 
@@ -570,10 +596,8 @@ def points_to_trace( points ):
 
 
 def plot_catmull_rom( points ):
-    #points = catmull_rom_chain(data, 1500)
-
+    points = catmull_rom_chain(data, 1500)
     trace = points_to_trace(points)
-
     plotly.offline.plot([trace], filename='basic-line')
 
 # Start:
