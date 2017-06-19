@@ -1,5 +1,4 @@
 # exec(open('C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/analyze.py').read())
-# s = subjects[0]
 # pip install plotly
 
 
@@ -19,6 +18,8 @@ import plotly.graph_objs as go
 # Datetime
 import datetime
 
+import numpy
+
 
 
 ##############################################################
@@ -28,8 +29,6 @@ import datetime
 # Dataset variables
 filepath = 'C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/bayesian-forecasting-export.json'
 dataset = json.load(open(filepath, 'r'))
-
-subjects = create_subjects()
 
 ##############################################################
 ##                     JSON PROCESSING                      ##
@@ -44,6 +43,10 @@ def create_subjects():
 
     return participants
 
+# Plots all the curves (Stage II) associated to a target variable
+# variable: (String) name of the variable to be plotted
+# trend: (String) {'stable', 'up', 'down'}
+# noiseIndex: Integer {0, 1, 2}. Which of the three noise sets to target
 def plot_variable(variable, trend='stable', noiseIndex=0):
     # Get the responses for the target variable
     target_responses = responses(variable, trend, noiseIndex)
@@ -87,14 +90,16 @@ def subjects_noise(noiseIndex):
 
     return array
 
-# Plots the data for a certain Prolific ID:
-def plot_pid( prolificId ):
-    get_subject_pid(prolificId).plot()
+# Plots the data for a certain User ID:
+# spline: set to True if instead of showing only the participant's points,
+# the spline points should be calculated and shown too.
+def plot_pid( userId, spline=False):
+    get_subject_pid(userId).plot(spline)
 
-# Returns the subject with the target Prolific ID
-def get_subject_pid( prolificId ):
+# Returns the subject with the target User ID
+def get_subject_pid( userId ):
     for s in subjects:
-        if s.userId == prolificId:
+        if s.userId == userId:
             return s
 
 # Prints the invalid subjects
@@ -162,8 +167,8 @@ class Subject:
 
         return responses
 
-    #################### GETTERS ####################
 
+    #################### GETTERS ####################
 
     # Returns the processed responses for a specific variable and stage
     def get_response( self, variable, stage, subcondition='' ):
@@ -207,23 +212,26 @@ class Subject:
 
         #print (str(r['y'][0]) + ',' + str(r['y'][1]) + ',' + str(r['y'][2]) + ',' + str(r['y'][3]) + ',' + str(r['y'][4]))
 
+
     # Displays a plot for a single subject, and a single variable
     # variable can be {rain, gym_memberships, temperature, wage, facebook_friends, sales}
-    def traces_variable( self, variable ):
+    # spline: (Boolean) defines whether the Traces are for the Spline or not
+    def traces_variable( self, variable, spline=False ):
         # Get the traces for the same variable, stage 1 and stage 2
-        trace1 = self.get_response(variable, 1).get_trace()
-        trace2 = self.get_response(variable, 2).get_trace()
+        trace1 = self.get_response(variable, 1).get_trace(spline)
+        trace2 = self.get_response(variable, 2).get_trace(spline)
 
         return [trace1, trace2]
 
     # Plots all the subject's responses
-    def plot( self ):
+    # spline: determines whether or not to calculate the Spline for the responses
+    def plot( self, spline=False):
         traces = []
         subplot_titles = []
 
         for v in get_variables():
             # Create a pair of traces for each variable
-            traces.append( self.traces_variable(v) )
+            traces.append( self.traces_variable(v, spline) )
 
             # Prepare the subtitles for each little graph
             subplot_titles.append(v.title())
@@ -292,21 +300,42 @@ class Response:
         return {'x': xdata, 'y': ydata}
 
     # Returns the trace of the response, for plotly
-    def get_trace( self ):
-        return go.Scatter(
-                x = self.items['x'],
-                y = self.items['y'],
-                mode = 'lines+markers',
-                name = 'Stage ' + str(self.stage),
-                line = dict(
-                    shape='spline'
+    def get_trace( self, spline=False):
+        # If spline is True, then return the spline's Trace object
+        if spline:
+            return self.get_spline_trace()
+        else:
+            return go.Scatter(
+                    x = self.items['x'],
+                    y = self.items['y'],
+                    mode = 'lines+markers',
+                    name = 'Stage ' + str(self.stage),
+                    line = dict(
+                        shape='spline'
+                    )
                 )
-            )
+
+    # Returns the trace of the spline
+    def get_spline_trace( self ):
+        # Calculate the Catmull-Rom spline, and then transform the points to a Trace
+        return self.__points_to_trace(self.get_catmull_rom())
+
+    # Returns the number of items
+    def get_number_of_items( self ):
+        if self.items['x'] == self.items['y']:
+            return self.items['x']
+        else:
+            return 'error'
 
 
     # Receives a date string with format "yyyy-mm-dd" and returns the
     # corresponding Date object
     def transform_date( self, dateString ):
+
+        # "Add" 2000 years to every year by replacing '000x' to '200x',
+        # because the year 0000 breaks Python)
+        dateString = dateString.replace('000', '200')
+
         return datetime.datetime.strptime(dateString, "%Y-%m-%d").date()
 
     # Returns a stage (1 or 2) given a pageIndex (integer)
@@ -328,3 +357,258 @@ class Response:
             return 'down'
         else:
             return 'error'
+
+    # Returns the items as a list of points: [{x0, y0}, {x1, y1}, {x2, y2}, ...]
+    # integer_dates: (Boolean) True if the dates have to be integers
+    def get_points( self, integer_dates = False):
+        points = []
+
+        # For each item, create and add a new point
+        for i in range(len(self.items['x'])):
+
+            y = self.items['y'][i]
+
+            if integer_dates:
+                x = self.__date_to_days(self.items['x'][i])
+            else:
+                x = self.items['x'][i]
+
+            points.append([ x, y ])
+
+        return points
+
+    # Returns the RAW Centripetal Catmull-Rom points of the current Response
+    def get_raw_catmull_rom( self ):
+        # Thousands of Catmull-Rom points because we want great smoothness
+        nPoints = 2000
+
+        return catmull_rom_chain(self.get_points(True), nPoints)
+
+    # Returns the FILTERED Centripetal Catmull-Rom points of the current Response
+    # By filtered, it means there is one point per day
+    def get_catmull_rom( self ):
+        if self.get_number_of_items == 2:
+            return self.__get_linear_interpolation()
+        else: # Length larger than 2, because the minimum length is 2
+            return self.__get_catmull_rom()
+
+    # Returns the linear interpolation of the items
+    def __get_linear_interpolation( self ):
+        # Get the 'x' and 'y' values of the first and last point
+        firstX = self.__date_to_days(self.items['x'][0])
+        lastX = self.__date_to_days(self.items['x'][len(self.items)-1])
+
+        firstY = self.items['y'][1]
+        lastY = self.items['y'][len(self.items)-1]
+
+        # Calculate the slope and the Y-intercept
+        slope = (lastY - firstY)/(lastX - firstX)
+        yIntercept = firstY - firstX * slope
+
+        # Create the points, from the first one to the last one, using the slope
+        points = []
+        for x in range(firstX, lastX):
+            y = yIntercept + slope * x
+
+            points.append([x, y])
+
+        return points
+
+    # Returns number of days between the target date and the 31st of
+    # december of 2000. Given the data, the least integer will be 0
+    def __date_to_days( self, date ):
+        return (date - datetime.date(2000, 12, 31)).days
+
+    # Returns the Catmull interpolation. Only to be used when the
+    # number of items is three or more
+    def __get_catmull_rom( self ):
+        spline = self.get_raw_catmull_rom()
+
+        # Get the 'x' value for the first and last point of the spline
+        firstX = int(round(spline[0][0]))
+        lastX = int(round(spline[len(spline)-1][0]))
+
+        searchIndex = 0
+
+        filteredPoints = []
+
+        # For each of the x values that need to be filled with a value...
+        for x in range(firstX, lastX + 1):
+            # Search for the point that it closest to it, starting with the search
+            # at the searchIndex
+            searchIndex = self.__find_closest_x(spline, x, searchIndex)
+
+            # Add the found point to the filteredPoints list
+            filteredPoints.append( [x, spline[searchIndex][1]] )
+
+        return filteredPoints
+
+    # Returns the index of the point which has the closest X value to the targetValue
+    # The search is started in startSearchOn
+    def __find_closest_x( self, points, targetValue, startSearchOn=0):
+        minimumDistance = 999999999 # Very large number
+        indexOfMinimum = -1 # Index where the minimum distance to the target is found
+
+        # Search on the entire length of the
+        for i in range(startSearchOn, len(points)):
+            distance = abs(targetValue - points[i][0])
+
+            # If the new distance is smaller than the current minimum distance, save it
+            if distance <= minimumDistance:
+                minimumDistance = distance
+                indexOfMinimum = i
+            else:
+                # Given that the distance should decrease until the point is passed,
+                # if the new distance is larger than the minimum, then the search is over
+                break
+
+        # Return the index where the minimum distance was found
+        return indexOfMinimum
+
+    # Plots the Centripetal Catmull-Rom of the current Response
+    def plot_catmull_rom( self ):
+        points = self.get_catmull_rom()
+
+        trace = self.__points_to_trace(points)
+
+        plotly.offline.plot([trace], filename='basic-line')
+
+    # Transforms an array of points to a trace:
+    def __points_to_trace( self, points ):
+        x = []
+        y = []
+
+        for p in points:
+            x.append(p[0])
+            y.append(p[1])
+
+        trace = go.Scatter(
+            x = x,
+            y = y,
+            mode = 'lines+markers'
+        )
+
+        return trace
+
+
+
+##############################################################
+##                         LIBRARIES                        ##
+##############################################################
+
+# Source: Wikipedia, https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+def catmull_rom_spline(P0, P1, P2, P3, nPoints=10):
+    """
+    P0, P1, P2, and P3 should be (x,y) point pairs that define the Catmull-Rom spline.
+    nPoints is the number of points to include in this curve segment.
+    """
+    # Convert the points to numpy so that we can do array multiplication
+    P0, P1, P2, P3 = map(numpy.array, [P0, P1, P2, P3])
+
+    # Calculate t0 to t4
+    alpha = 0.5
+    def tj(ti, Pi, Pj):
+        xi, yi = Pi
+        xj, yj = Pj
+        return ( ( (xj-xi)**2 + (yj-yi)**2 )**0.5 )**alpha + ti
+
+    t0 = 0
+    t1 = tj(t0, P0, P1)
+    t2 = tj(t1, P1, P2)
+    t3 = tj(t2, P2, P3)
+
+    #nPoints = numpy.sqrt ( numpy.power(P2[0]-P1[0], 2) + numpy.power(P2[1]-P1[1], 2) )
+
+    # Only calculate points between P1 and P2
+    t = numpy.linspace(t1,t2,nPoints)
+
+    # Reshape so that we can multiply by the points P0 to P3
+    # and get a point for each value of t.
+    t = t.reshape(len(t),1)
+
+    A1 = (t1-t)/(t1-t0)*P0 + (t-t0)/(t1-t0)*P1
+    A2 = (t2-t)/(t2-t1)*P1 + (t-t1)/(t2-t1)*P2
+    A3 = (t3-t)/(t3-t2)*P2 + (t-t2)/(t3-t2)*P3
+
+    B1 = (t2-t)/(t2-t0)*A1 + (t-t0)/(t2-t0)*A2
+    B2 = (t3-t)/(t3-t1)*A2 + (t-t1)/(t3-t1)*A3
+
+    C  = (t2-t)/(t2-t1)*B1 + (t-t1)/(t2-t1)*B2
+    return C
+
+# Source: Wikipedia, https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+def catmull_rom_chain(points, nPointsCatmullRom = 10):
+  """
+  Calculate Catmull Rom for a chain of points and return the combined curve.
+  """
+  points = add_border_points(points)
+
+  size = len(points)
+
+  # The curve C will contain an array of (x,y) points.
+  C = []
+  for i in range(size-3):
+    c = catmull_rom_spline(points[i], points[i+1], points[i+2], points[i+3], nPointsCatmullRom)
+
+    C.extend(c)
+
+  return C
+
+def add_border_points( points ):
+    diff_resolution = 10
+
+    # Get the change in x and y between the first and second coordinates.
+    dx = points[1][0] - points[0][0]
+    dy = points[1][1] - points[0][1]
+
+    #Then using the change, extrapolate backwards to find a control point.
+    x1 = points[0][0] - (dx / diff_resolution)
+    y1 = points[0][1] - (dy / diff_resolution)
+
+    # Create the start point from the extrapolated values.
+    start = [x1, y1]
+
+    # Repeat for the end control point.
+    n = len(points) - 1
+    dx = points[n][0] - points[n - 1][0]
+    dy = points[n][1] - points[n - 1][1]
+
+    xn = points[n][0] + (dx / diff_resolution)
+    yn = points[n][1] + (dy / diff_resolution)
+    end = [xn, yn]
+
+    #insert the start control point at the start of the points list.
+    final_points = [start] + points
+
+    # append the end control ponit to the end of the points list.
+    final_points.append(end)
+
+    return final_points
+
+# Transforms an array of points to a trace:
+def points_to_trace( points ):
+    x = []
+    y = []
+
+    for p in points:
+        x.append(p[0])
+        y.append(p[1])
+
+    trace = go.Scatter(
+        x = x,
+        y = y,
+        mode = 'lines+markers'
+    )
+
+    return trace
+
+
+def plot_catmull_rom( points ):
+    points = catmull_rom_chain(data, 1500)
+    trace = points_to_trace(points)
+    plotly.offline.plot([trace], filename='basic-line')
+
+# Start:
+#plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
+subjects = create_subjects()
+s = subjects[0]
