@@ -91,8 +91,10 @@ def subjects_noise(noiseIndex):
     return array
 
 # Plots the data for a certain User ID:
-def plot_pid( userId ):
-    get_subject_pid(userId).plot()
+# spline: set to True if instead of showing only the participant's points,
+# the spline points should be calculated and shown too.
+def plot_pid( userId, spline=False):
+    get_subject_pid(userId).plot(spline)
 
 # Returns the subject with the target User ID
 def get_subject_pid( userId ):
@@ -213,21 +215,23 @@ class Subject:
 
     # Displays a plot for a single subject, and a single variable
     # variable can be {rain, gym_memberships, temperature, wage, facebook_friends, sales}
-    def traces_variable( self, variable ):
+    # spline: (Boolean) defines whether the Traces are for the Spline or not
+    def traces_variable( self, variable, spline=False ):
         # Get the traces for the same variable, stage 1 and stage 2
-        trace1 = self.get_response(variable, 1).get_trace()
-        trace2 = self.get_response(variable, 2).get_trace()
+        trace1 = self.get_response(variable, 1).get_trace(spline)
+        trace2 = self.get_response(variable, 2).get_trace(spline)
 
         return [trace1, trace2]
 
     # Plots all the subject's responses
-    def plot( self ):
+    # spline: determines whether or not to calculate the Spline for the responses
+    def plot( self, spline=False):
         traces = []
         subplot_titles = []
 
         for v in get_variables():
             # Create a pair of traces for each variable
-            traces.append( self.traces_variable(v) )
+            traces.append( self.traces_variable(v, spline) )
 
             # Prepare the subtitles for each little graph
             subplot_titles.append(v.title())
@@ -296,16 +300,20 @@ class Response:
         return {'x': xdata, 'y': ydata}
 
     # Returns the trace of the response, for plotly
-    def get_trace( self ):
-        return go.Scatter(
-                x = self.items['x'],
-                y = self.items['y'],
-                mode = 'lines+markers',
-                name = 'Stage ' + str(self.stage),
-                line = dict(
-                    shape='spline'
+    def get_trace( self, spline=False):
+        # If spline is True, then return the spline's Trace object
+        if spline:
+            return self.get_spline_trace()
+        else:
+            return go.Scatter(
+                    x = self.items['x'],
+                    y = self.items['y'],
+                    mode = 'lines+markers',
+                    name = 'Stage ' + str(self.stage),
+                    line = dict(
+                        shape='spline'
+                    )
                 )
-            )
 
     # Returns the trace of the spline
     def get_spline_trace( self ):
