@@ -32,36 +32,47 @@ Each element represents a different plot, and is composed by the following subel
 
 <blockquote>
 
-  {
-    "age" : "36-45",
-    "datetime" : "Wed Jun 07 2017 22:59:11 GMT+0100 (BST)",
-    "gender" : "male",
-    "historicalData" : [ {
-      "condition" : "facebook_friends",
-      "datetime" : "Wed Jun 07 2017 22:55:03 GMT+0100 (BST)",
-      "items" : [ {
-        "id" : "24dd098f-9fe2-426e-b4f1-cdc8fee76a5f",
-        "x" : "0001-05-17",
-        "y" : 213.79999999999998
+    {
+      "age" : "36-45",
+      "datetime" : "Wed Jun 07 2017 22:59:11 GMT+0100 (BST)",
+      "gender" : "male",
+      "historicalData" : [ {
+        "condition" : "facebook_friends",
+        "datetime" : "Wed Jun 07 2017 22:55:03 GMT+0100 (BST)",
+        "items" : [ {
+          "id" : "24dd098f-9fe2-426e-b4f1-cdc8fee76a5f",
+          "x" : "0001-05-17",
+          "y" : 213.79999999999998
+        },
+
+        [more items...]
+
+        ],
+        "now" : 1496872503236,
+        "pageIndex" : 2,
+        "subCondition" : 3
       },
 
-      [more items...]
+      [more elements in historicalData...]
 
       ],
-      "now" : 1496872503236,
-      "pageIndex" : 2,
-      "subCondition" : 3
-    },
-
-    [more elements in historicalData...]
-
-    ],
-    "now" : "1496872751882",
-    "sessionId" : "593875c4e9b44100013ae848",
-    "userId" : "a001"
-  }
+      "now" : "1496872751882",
+      "sessionId" : "593875c4e9b44100013ae848",
+      "userId" : "a001"
+    }
 
 </blockquote>
 
-# Check the responses of a specific user (by Prolific ID)
+# analyze.py
+
+Contains all the data analysis code. It is composed of three parts: static code,
+Subject class, and Response Class.
+
+When the program is run, a list of Subjects is created on the basis of the json.
+Each Subject has its own demographics data, plus a list of Responses. Each plot
+is a Response (i.e., each element in the historicalData list of the json).
+
+## Useful functions in analyze.py
+
+### Check the responses of a specific user (by User ID). It creates plots on the browser.
 plot_pid('a001')
