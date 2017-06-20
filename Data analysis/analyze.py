@@ -109,11 +109,81 @@ def get_subjects( filterNotValidSubjects = False ):
 ##                   ALL PARTICIPANTS ANALYSIS              ##
 ##############################################################
 
+# Plots ALL the variables
+def plot_variables(filter=False):
+    all_variables_traces = []
+    subplot_titles = []
+
+    # Build the traces and the subtitles
+    for v in get_variables():
+        # Stage I subtitle
+        subplot_titles.append(v.title())
+
+        # This list will hold several lists of traces
+        variable_traces = []
+
+        # Stage I traces
+        variable_traces.append(get_traces_variable(v, filter))
+
+        # Stage II
+        for subcondition in get_subconditions():
+            # Traces
+            variable_traces.append( get_traces_variable(v, filter, 2, subcondition, 0) +
+                                    get_traces_variable(v, filter, 2, subcondition, 1) +
+                                    get_traces_variable(v, filter, 2, subcondition, 2) )
+
+            # Subtitles
+            subplot_titles.append('Stage 2 (' + subcondition + ')'
+
+        # Append the traces to the 'all traces' variable
+        all_variables_traces.append(variable_traces)
+
+    # Create the plot
+    colsCount = 4
+    fig = tools.make_subplots(rows=6, cols=colsCount, subplot_titles=(subplot_titles), print_grid=False)
+
+    # Put the traces in position
+    for i in range(len(all_variables_traces)):
+        # Append all the traces to that figure:
+        for j in range(len(all_variables_traces[i])):
+
+            # Traces for a specific variable, in a specific situation
+            traces = all_variables_traces[i][j]
+
+            # For all the traces, append it to the figure:
+            for t in traces:
+                fig.append_trace(t, i+1, j+1)
+
+
+    # Modify the ranges of the y-axis
+    for index in range(len(get_variables())):
+        # For every column
+        for col in range(colsCount):
+            # Identify the plot
+            plot_identifier = 'yaxis' + str(index * colsCount + col + 1)
+
+            # Update the range
+            fig['layout'][plot_identifier].update(range = get_range(get_variables()[index]) )
+
+    # Set up the dimensions of the plot
+    fig['layout'].update(height=2400, width=1200, title='Responses')
+
+    # Plot the graphs
+    plotly.offline.plot(fig, filename='jupyter/all_responses.html')
+
+
 # Plots all the curves (Stage II) associated to a target variable
 # variable: (String) name of the variable to be plotted
 # trend: (String) {'stable', 'up', 'down'}
 # noiseIndex: Integer {0, 1, 2}. Which of the three noise sets to target
 def plot_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
+    # Get the traces
+    traces = get_traces_variable(variable, filter, stage, trend, noiseIndex)
+
+    # Plot the trends in one plot
+    plotly.offline.iplot(traces, filename='jupyter/plot_variable.html')
+
+def get_traces_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
     # Get the responses for the target variable
     target_responses = responses(variable, filter, stage, trend, noiseIndex)
 
@@ -122,8 +192,7 @@ def plot_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0)
     for r in target_responses:
         traces.append(r.get_trace(showUserId=True))
 
-    # Plot the trends in one plot
-    plotly.offline.iplot(traces, filename='Jupyter/plot_variable.html')
+    return traces
 
 
 # Returns a list with the number of items each participants added for a
@@ -184,7 +253,7 @@ def show_histogram(data, labels, title):
 
     fig['layout'].update(title=title, xaxis=dict(range=[0, 50]))
 
-    plotly.offline.iplot(fig, filename='Jupyter/histogram.html')
+    plotly.offline.iplot(fig, filename='jupyter/histogram.html')
 
 
 def get_range( variable ):
@@ -205,6 +274,8 @@ def get_range( variable ):
 def get_variables():
     return ['temperature', 'rain', 'sales', 'gym_memberships', 'wage', 'facebook_friends']
 
+def get_subconditions():
+    return ['up', 'stable', 'down']
 
 # Return the label for a certain variable+stage
 def get_label(variable, stage=0):
@@ -338,6 +409,7 @@ class Subject:
         traces = []
         subplot_titles = []
 
+        # Build the traces and the titles
         for v in get_variables():
             # Create a pair of traces for each variable
             traces.append( self.traces_variable(v, spline) )
@@ -368,7 +440,6 @@ class Subject:
         fig['layout'].update(height=1200, width=800, title='Prolific ID: ' + self.userId)
 
         # Plot the graphs
-        #plotly.offline.plot(fig, filename='subject_responses.html')
         plotly.offline.iplot(fig, filename='jupyter/subject_responses.html')
 
 ##############################################################
