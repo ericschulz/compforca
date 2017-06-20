@@ -33,6 +33,8 @@ import numpy
 filepath = 'C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/bayesian-forecasting-export.json'
 dataset = json.load(open(filepath, 'r'))
 
+plotly.offline.init_notebook_mode()
+
 ##############################################################
 ##                     JSON PROCESSING                      ##
 ##############################################################
@@ -182,7 +184,7 @@ def show_histogram(data, labels, title):
 
     fig['layout'].update(title=title, xaxis=dict(range=[0, 50]))
 
-    plotly.offline.plot(fig, filename='histogram')
+    plotly.offline.iplot(fig, filename='Jupyter/histogram.html')
 
 
 def get_range( variable ):
@@ -327,7 +329,7 @@ class Subject:
             subplot_titles.append('Stage 2 (' + self.get_response(v, 2).get_subcondition_name() + ')')
 
         # Add the subtitles
-        fig = tools.make_subplots(rows=6, cols=2, subplot_titles=(subplot_titles))
+        fig = tools.make_subplots(rows=6, cols=2, subplot_titles=(subplot_titles), print_grid=False)
 
         # Put the traces in position
         for index in range(0, len(traces)):
@@ -345,10 +347,11 @@ class Subject:
             fig['layout'][second].update(range = get_range(get_variables()[index]) )
 
         # Set up the dimensions of the plot
-        fig['layout'].update(height=2400, width=1400, title='Prolific ID: ' + self.userId)
+        fig['layout'].update(height=1200, width=800, title='Prolific ID: ' + self.userId)
 
         # Plot the graphs
-        plotly.offline.plot(fig, filename='make-subplots-multiple-with-titles')
+        #plotly.offline.plot(fig, filename='subject_responses.html')
+        plotly.offline.iplot(fig, filename='jupyter/subject_responses.html')
 
 ##############################################################
 ##                         RESPONSE                         ##
@@ -714,5 +717,3 @@ def plot_catmull_rom( points ):
 # Start:
 #plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
 all_subjects = create_subjects()
-
-variable_items_count_histogram('rain')
