@@ -18,7 +18,7 @@ Strange results:
                               can see some points I added accidently in year 3,
                               and when I couldn't remove them, I just added one plot
                               point at the end of year 4 and hit continue to do the others.
-                              Sorry about this. <-- remove trial
+                              Sorry about this. <-- removed PARTICIPANT
 
   ----------------------------------------------------------
 

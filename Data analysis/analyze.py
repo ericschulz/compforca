@@ -43,13 +43,74 @@ def create_subjects():
 
     return participants
 
+
+# Returns all the responses for a certain variable, with a specific trend and noise
+# trend = {'up', 'stable', 'down'}.  noise = {0, 1, 2}
+# filter: whether to filter out participants that are not valid
+def responses(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
+    # Participants
+    participants = get_subjects(filter)
+
+    # Responses with the target stage, variable, trend, and noiseIndex
+    responses = []
+
+    for p in participants:
+        # Get the response for the target variable, at Stage II, of the target trend
+        r = p.get_response(variable, stage, trend)
+
+        # If the response was successfully found
+        if r != 'not found':
+            # And if we are interested in Stage II, we also have to check the noiseIndex
+            if (stage == 2 and r.noiseIndex == noiseIndex) or stage==1:
+                responses.append(r)
+
+    return responses
+
+
+# Plots the data for a certain User ID:
+# spline: set to True if instead of showing only the participant's points,
+# the spline points should be calculated and shown too.
+def plot_pid( userId, spline=False):
+    get_subject_pid(userId).plot(spline)
+
+# Returns the subject with the target User ID
+def get_subject_pid( userId ):
+    for s in get_subjects():
+        if s.userId == userId:
+            return s
+
+# Prints the invalid subjects
+def print_invalid_subjects():
+    for s in all_subjects:
+        if not s.is_valid():
+            print(s.userId)
+
+# Returns the list of subjects
+# One can decide whether to filter out those participants that are deemed not valid.
+def get_subjects( filterNotValidSubjects = False ):
+    if filterNotValidSubjects:
+        list = []
+
+        for s in all_subjects:
+            if s.is_valid():
+                list.append(s)
+
+        return list
+
+    else:
+        return all_subjects
+
+##############################################################
+##                   ALL PARTICIPANTS ANALYSIS              ##
+##############################################################
+
 # Plots all the curves (Stage II) associated to a target variable
 # variable: (String) name of the variable to be plotted
 # trend: (String) {'stable', 'up', 'down'}
 # noiseIndex: Integer {0, 1, 2}. Which of the three noise sets to target
-def plot_variable(variable, trend='stable', noiseIndex=0):
+def plot_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
     # Get the responses for the target variable
-    target_responses = responses(variable, trend, noiseIndex)
+    target_responses = responses(variable, filter, stage, trend, noiseIndex)
 
     # Generate the plotly traces for those responses
     traces = []
@@ -60,53 +121,22 @@ def plot_variable(variable, trend='stable', noiseIndex=0):
     plotly.offline.plot(traces, filename='line-mode')
 
 
-# Returns all the responses for a certain variable, with a specific trend and noise
-# trend = {'up', 'stable', 'down'}.  noise = {0, 1, 2}
-def responses(variable, trend='stable', noiseIndex=0):
-    # Participants with the target noise
-    participants = subjects_noise(noiseIndex)
+# Prints a histogram of number of items for one variable
+# filter: (Boolean) if True, if filters the participants who are NOT valid
+def items_count_histogram( variable, stage, filter=False):
 
-    # Responses with the target variable and trend
-    responses = []
+    # Get the responses for the target variable
+    target_responses = responses(variable, filter, stage)
 
-    for p in participants:
-        # Get the response for the target variable, at stage 2, of the target trend
-        r = p.get_response(variable, 2, trend)
+    # Generate the item's count for each response
+    counts = []
+    for r in target_responses:
+        # Append the number of points that the participant added on that plot
+        counts.append(r.get_participant_items_count())
 
-        if r != 'not found':
-            responses.append(r)
-
-    return responses
-
-
-
-# Get all the subjects of the target noise. noise = {1,2,3}
-def subjects_noise(noiseIndex):
-    array = []
-
-    for s in subjects:
-        if s.get_noise_index() == noiseIndex:
-            array.append(s)
-
-    return array
-
-# Plots the data for a certain User ID:
-# spline: set to True if instead of showing only the participant's points,
-# the spline points should be calculated and shown too.
-def plot_pid( userId, spline=False):
-    get_subject_pid(userId).plot(spline)
-
-# Returns the subject with the target User ID
-def get_subject_pid( userId ):
-    for s in subjects:
-        if s.userId == userId:
-            return s
-
-# Prints the invalid subjects
-def print_invalid_subjects():
-    for s in subjects:
-        if not s.is_valid():
-            print(s.userId)
+    group_labels = ['distplot']
+    fig = ff.create_distplot(count, group_labels)
+    plotly.offline.plot(fig, filename='Basic Distplot')
 
 
 ##############################################################
@@ -144,10 +174,10 @@ class Subject:
 
     def __init__(self, subjectData):
         self.rawData = subjectData
-        self.__processSubjectRawData()
+        self.__process_subject_raw_data()
 
     # Processes the raw data received in the constructor
-    def __processSubjectRawData( self ):
+    def __process_subject_raw_data( self ):
         self.userId = self.rawData['userId']
         self.sessionId = self.rawData['sessionId']
         self.age = self.rawData['age']
@@ -155,10 +185,12 @@ class Subject:
         self.gender = self.rawData['gender']
         self.rawResponses = self.rawData['historicalData']
 
-        self.responses = self.__processResponses(self.rawResponses)
+        self.responses = self.__process_responses(self.rawResponses)
+
+        self.__set_noise_index()
 
     # Processes the raw reponses by constructing a Response object for each
-    def __processResponses( self, rawResponses ):
+    def __process_responses( self, rawResponses ):
         responses = []
 
         for response in rawResponses:
@@ -166,6 +198,14 @@ class Subject:
             responses.append(Response(response))
 
         return responses
+
+    # Sets the noise index on the responses
+    def __set_noise_index( self ):
+        # Now that all the responses have been created, calculate the noiseIndex
+        noiseIndex = self.get_noise_index()
+        # And set the noiseIndex to every response
+        for r in self.responses:
+            r.noiseIndex = noiseIndex
 
 
     #################### GETTERS ####################
@@ -190,7 +230,6 @@ class Subject:
     def get_response_items( self, variable, stage, subcondition=''):
         return self.get_response(variable, stage, subcondition).items
 
-
     # Returns true if the subject is valid for analysis
     def is_valid( self ):
         return len(self.responses) == 12
@@ -198,7 +237,7 @@ class Subject:
     # Returns the index of the noise set that was used:
     def get_noise_index( self ):
         # TODO: in the next version, this parameter is being saved in the experiment as 'noiseArray'
-        # Get the items for the rain
+        # Get the items for the rain (it could be anyone of them)
         r = self.get_response_items('rain', 2)
 
         if round(r['y'][1], 5) == round(33.4532551009561, 5) or round(r['y'][1], 5) == round(21.5467448990438, 5) or round(r['y'][1], 5) == round(38.4532551009561, 5):
@@ -321,12 +360,21 @@ class Response:
         return self.__points_to_trace(self.get_catmull_rom())
 
     # Returns the number of items
-    def get_number_of_items( self ):
+    def get_items_count( self ):
         if self.items['x'] == self.items['y']:
             return self.items['x']
         else:
             return 'error'
 
+    # Return the amount of items added by the participant (i.e. subtracting the automatic ones)
+    def get_participant_items_count( self ):
+        # Stage I
+        if self.stage == 1:
+            return self.get_items_count()
+        # Stage II
+        else:
+            # Because on Stage II, 5 items are initially shown and cannot be removed
+            return self.get_items_count() - 5
 
     # Receives a date string with format "yyyy-mm-dd" and returns the
     # corresponding Date object
@@ -387,7 +435,7 @@ class Response:
     # Returns the FILTERED Centripetal Catmull-Rom points of the current Response
     # By filtered, it means there is one point per day
     def get_catmull_rom( self ):
-        if self.get_number_of_items == 2:
+        if self.get_items_count == 2:
             return self.__get_linear_interpolation()
         else: # Length larger than 2, because the minimum length is 2
             return self.__get_catmull_rom()
@@ -610,5 +658,4 @@ def plot_catmull_rom( points ):
 
 # Start:
 #plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
-subjects = create_subjects()
-s = subjects[0]
+all_subjects = create_subjects()
