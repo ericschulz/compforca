@@ -88,7 +88,7 @@ def get_subject_pid( userId ):
 def print_invalid_subjects():
     for s in all_subjects:
         if not s.is_valid():
-            print(s.userId)
+            print(s.userId + ': ' + str(s.is_valid_verbose()))
 
 # Returns the list of subjects
 # One can decide whether to filter out those participants that are deemed not valid.
@@ -285,7 +285,24 @@ class Subject:
 
     # Returns true if the subject is valid for analysis
     def is_valid( self ):
-        return len(self.responses) == 12
+        return self.is_valid_verbose() == True
+
+    # Returns True if the participant is valid. If not, it returns a String
+    # explaining why not.
+    def is_valid_verbose ( self ):
+        if len(self.responses) != 12:
+            return 'Participant did not answer the twelve plots.'
+
+        if self.userId == 'a106':
+            return 'Participant misunderstood the instructions and always added a point on the far right and far bottom.'
+
+        if self.userId == 'a021':
+            return 'Response in Temperature (constant -10) indicates a non-interested participant.'
+
+        if self.userId == 'a118':
+            return 'Participant indicated that he had trouble with the interface.'
+
+        return True
 
     # Returns the index of the noise set that was used:
     def get_noise_index( self ):
