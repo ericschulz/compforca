@@ -106,7 +106,9 @@ is a Response (i.e., each element in the historicalData list of the json).
 
 ### Check the responses of a specific user (by User ID). It creates plots on the browser.
 
-        plot_pid('a001')
+- `spline`: (Boolean) If spline is True, it calculates all the spline points
+
+        plot_pid('a001', spline=False)
 
 ### Plot all the curves (of Stage II) associated to a target variable
 
