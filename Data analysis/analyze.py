@@ -14,6 +14,9 @@ import plotly
 from plotly import tools
 import plotly.plotly as py
 import plotly.graph_objs as go
+import plotly.figure_factory as ff
+
+import scipy
 
 # Datetime
 import datetime
@@ -121,10 +124,10 @@ def plot_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0)
     plotly.offline.plot(traces, filename='line-mode')
 
 
-# Prints a histogram of number of items for one variable
+# Returns a list with the number of items each participants added for a
+# certain variable in a certain stage
 # filter: (Boolean) if True, if filters the participants who are NOT valid
-def items_count_histogram( variable, stage, filter=False):
-
+def items_count( variable, stage, filter=False):
     # Get the responses for the target variable
     target_responses = responses(variable, filter, stage)
 
@@ -134,14 +137,53 @@ def items_count_histogram( variable, stage, filter=False):
         # Append the number of points that the participant added on that plot
         counts.append(r.get_participant_items_count())
 
-    group_labels = ['distplot']
-    fig = ff.create_distplot(count, group_labels)
-    plotly.offline.plot(fig, filename='Basic Distplot')
+    return counts
+
+# Prints a histogram for all the variables count on a certain stage
+def stage_items_count_histogram( stage, filter=False ):
+    counts_list = []
+
+    # Get the items count for every variable, for a target stage
+    variables = get_variables()
+    for v in variables:
+        # Get and append the items' count for a specific variable
+        counts_list.append(items_count(v, stage, filter))
+
+    title = "Histogram of Items Count, Stage " + str(stage)
+
+    # Show the histogram
+    show_histogram(counts_list, variables, title)
+
+# Prints a histogram for all the variables count on a certain stage
+def variable_items_count_histogram( variable, filter=False ):
+    counts_list = []
+
+    # Get the counts for Stage I and II
+    counts_list.append(items_count(variable, 1, filter))
+    counts_list.append(items_count(variable, 2, filter))
+
+    # Build labels
+    labels = [ get_label(variable, 1), get_label(variable, 2) ]
+
+    title = "Histogram of Items' Count: " + get_label(variable)
+
+    # Show the histogram
+    show_histogram(counts_list, labels, title)
 
 
 ##############################################################
 ##                          TOOLS                           ##
 ##############################################################
+
+def show_histogram(data, labels, title):
+    # Build the histogram
+    fig = ff.create_distplot(data, labels, show_rug=False,
+                             histnorm='probability', curve_type='normal')
+
+    fig['layout'].update(title=title, xaxis=dict(range=[0, 50]))
+
+    plotly.offline.plot(fig, filename='histogram')
+
 
 def get_range( variable ):
   if variable == "temperature":
@@ -160,6 +202,14 @@ def get_range( variable ):
 # Returns a list with all the variables' names
 def get_variables():
     return ['temperature', 'rain', 'sales', 'gym_memberships', 'wage', 'facebook_friends']
+
+
+# Return the label for a certain variable+stage
+def get_label(variable, stage=0):
+    if stage == 0:
+        return variable.title()
+    else:
+        return 'Stage ' + str(stage) + ' (' + variable.title() + ')'
 
 # Returns the number of participants
 def get_number_of_subjects():
@@ -361,9 +411,13 @@ class Response:
 
     # Returns the number of items
     def get_items_count( self ):
-        if self.items['x'] == self.items['y']:
-            return self.items['x']
+        # If the lengths of the 'x' and 'y' lists are equivalent (they SHOULD be)
+        if len(self.items['x']) == len(self.items['y']):
+            # Return the length of one of them
+            return len(self.items['x'])
+        # In any other case, print and return an error
         else:
+            print('error: ' + str(self.items))
             return 'error'
 
     # Return the amount of items added by the participant (i.e. subtracting the automatic ones)
@@ -506,8 +560,9 @@ class Response:
                 minimumDistance = distance
                 indexOfMinimum = i
             else:
-                # Given that the distance should decrease until the point is passed,
-                # if the new distance is larger than the minimum, then the search is over
+                # Given that the distance is described by a convex function,
+                # once the distance increases, then it means the minimum has
+                # been passed
                 break
 
         # Return the index where the minimum distance was found
@@ -659,3 +714,5 @@ def plot_catmull_rom( points ):
 # Start:
 #plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
 all_subjects = create_subjects()
+
+variable_items_count_histogram('rain')
