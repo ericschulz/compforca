@@ -120,10 +120,10 @@ def plot_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0)
     # Generate the plotly traces for those responses
     traces = []
     for r in target_responses:
-        traces.append(r.get_trace())
+        traces.append(r.get_trace(showUserId=True))
 
     # Plot the trends in one plot
-    plotly.offline.plot(traces, filename='line-mode')
+    plotly.offline.iplot(traces, filename='Jupyter/plot_variable.html')
 
 
 # Returns a list with the number of items each participants added for a
@@ -239,7 +239,7 @@ class Subject:
 
         self.responses = self.__process_responses(self.rawResponses)
 
-        self.__set_noise_index()
+        self.__set_other_variables()
 
     # Processes the raw reponses by constructing a Response object for each
     def __process_responses( self, rawResponses ):
@@ -251,13 +251,14 @@ class Subject:
 
         return responses
 
-    # Sets the noise index on the responses
-    def __set_noise_index( self ):
+    # Sets the value of other variables that are relevant to the Response
+    def __set_other_variables( self ):
         # Now that all the responses have been created, calculate the noiseIndex
         noiseIndex = self.get_noise_index()
         # And set the noiseIndex to every response
         for r in self.responses:
             r.noiseIndex = noiseIndex
+            r.userId = self.userId
 
 
     #################### GETTERS ####################
@@ -392,7 +393,11 @@ class Response:
         return {'x': xdata, 'y': ydata}
 
     # Returns the trace of the response, for plotly
-    def get_trace( self, spline=False):
+    def get_trace( self, spline=False, showUserId=False):
+
+        # If showUserId is True, then the name of the Trace should be the userId
+        traceName = self.userId if showUserId else 'Stage ' + str(self.stage)
+
         # If spline is True, then return the spline's Trace object
         if spline:
             return self.get_spline_trace()
@@ -401,7 +406,7 @@ class Response:
                     x = self.items['x'],
                     y = self.items['y'],
                     mode = 'lines+markers',
-                    name = 'Stage ' + str(self.stage),
+                    name = traceName,
                     line = dict(
                         shape='spline'
                     )
