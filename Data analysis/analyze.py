@@ -151,7 +151,7 @@ def stage_items_count_histogram( stage, filter=False ):
         # Get and append the items' count for a specific variable
         counts_list.append(items_count(v, stage, filter))
 
-    title = "Histogram of Items Count, Stage " + str(stage)
+    title = "Histogram of Items' Count: Stage " + str(stage)
 
     # Show the histogram
     show_histogram(counts_list, variables, title)
