@@ -133,7 +133,7 @@ def plot_variables(filter=False):
                                     get_traces_variable(v, filter, 2, subcondition, 2) )
 
             # Subtitles
-            subplot_titles.append('Stage 2 (' + subcondition + ')'
+            subplot_titles.append('Stage 2 (' + subcondition + ')')
 
         # Append the traces to the 'all traces' variable
         all_variables_traces.append(variable_traces)
@@ -398,8 +398,8 @@ class Subject:
     # spline: (Boolean) defines whether the Traces are for the Spline or not
     def traces_variable( self, variable, spline=False ):
         # Get the traces for the same variable, stage 1 and stage 2
-        trace1 = self.get_response(variable, 1).get_trace(spline)
-        trace2 = self.get_response(variable, 2).get_trace(spline)
+        trace1 = self.get_response(variable, 1).get_trace(spline, hoverinfo='all')
+        trace2 = self.get_response(variable, 2).get_trace(spline, hoverinfo='all')
 
         return [trace1, trace2]
 
@@ -481,10 +481,15 @@ class Response:
         return {'x': xdata, 'y': ydata}
 
     # Returns the trace of the response, for plotly
-    def get_trace( self, spline=False, showUserId=False):
+    def get_trace( self, spline=False, showUserId=False, hoverinfo='none', oneColor=False):
 
         # If showUserId is True, then the name of the Trace should be the userId
         traceName = self.userId if showUserId else 'Stage ' + str(self.stage)
+
+        # Line color and alpha
+        lineOptions = dict(shape='spline')
+        if oneColor:
+            lineOptions['color'] = 'rgba(205, 12, 24, 0.5)'
 
         # If spline is True, then return the spline's Trace object
         if spline:
@@ -495,9 +500,8 @@ class Response:
                     y = self.items['y'],
                     mode = 'lines+markers',
                     name = traceName,
-                    line = dict(
-                        shape='spline'
-                    )
+                    line = lineOptions,
+                    hoverinfo = hoverinfo
                 )
 
     # Returns the trace of the spline
