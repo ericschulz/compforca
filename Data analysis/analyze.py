@@ -110,7 +110,7 @@ def get_subjects( filterNotValidSubjects = False ):
 ##############################################################
 
 # Plots ALL the variables
-def plot_variables(filter=False):
+def plot_variables(filter=False, oneColor=True):
     all_variables_traces = []
     subplot_titles = []
 
@@ -123,14 +123,14 @@ def plot_variables(filter=False):
         variable_traces = []
 
         # Stage I traces
-        variable_traces.append(get_traces_variable(v, filter))
+        variable_traces.append(get_traces_variable(v, filter, oneColor=oneColor))
 
         # Stage II
         for subcondition in get_subconditions():
             # Traces
-            variable_traces.append( get_traces_variable(v, filter, 2, subcondition, 0) +
-                                    get_traces_variable(v, filter, 2, subcondition, 1) +
-                                    get_traces_variable(v, filter, 2, subcondition, 2) )
+            variable_traces.append( get_traces_variable(v, filter, 2, subcondition, 0, oneColor=oneColor) +
+                                    get_traces_variable(v, filter, 2, subcondition, 1, oneColor=oneColor) +
+                                    get_traces_variable(v, filter, 2, subcondition, 2, oneColor=oneColor) )
 
             # Subtitles
             subplot_titles.append('Stage 2 (' + subcondition + ')')
@@ -176,21 +176,21 @@ def plot_variables(filter=False):
 # variable: (String) name of the variable to be plotted
 # trend: (String) {'stable', 'up', 'down'}
 # noiseIndex: Integer {0, 1, 2}. Which of the three noise sets to target
-def plot_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
+def plot_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0, oneColor=False):
     # Get the traces
-    traces = get_traces_variable(variable, filter, stage, trend, noiseIndex)
+    traces = get_traces_variable(variable, filter, stage, trend, noiseIndex, oneColor=oneColor)
 
     # Plot the trends in one plot
     plotly.offline.iplot(traces, filename='jupyter/plot_variable.html')
 
-def get_traces_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
+def get_traces_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0, oneColor=False):
     # Get the responses for the target variable
     target_responses = responses(variable, filter, stage, trend, noiseIndex)
 
     # Generate the plotly traces for those responses
     traces = []
     for r in target_responses:
-        traces.append(r.get_trace(showUserId=True))
+        traces.append(r.get_trace(showUserId=True, oneColor=oneColor))
 
     return traces
 
@@ -489,7 +489,7 @@ class Response:
         # Line color and alpha
         lineOptions = dict(shape='spline')
         if oneColor:
-            lineOptions['color'] = 'rgba(205, 12, 24, 0.5)'
+            lineOptions['color'] = 'rgba(205, 12, 24, 0.4)'
 
         # If spline is True, then return the spline's Trace object
         if spline:
@@ -501,7 +501,8 @@ class Response:
                     mode = 'lines+markers',
                     name = traceName,
                     line = lineOptions,
-                    hoverinfo = hoverinfo
+                    hoverinfo = hoverinfo,
+                    showlegend = not oneColor
                 )
 
     # Returns the trace of the spline
