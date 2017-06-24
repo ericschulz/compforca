@@ -71,6 +71,34 @@ def responses(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
 
     return responses
 
+# Creates a CSV with the following structure, in columns:
+# UserID, Condition, Subcondition, Random Set, [x, y]
+def generate_csv():
+    participants = get_subjects()
+
+    # Create new file (if it exists, it will rewrite it)
+    file = open('catmull-rom-dataset.csv', 'w')
+
+    # Titles:
+    titles = 'userId, age, datetime, gender,'
+
+    responsesTitles = 'timestamp,datetime,stage,condition,subcondition,pageIndex,noiseIndex,'
+
+    for index in range(len(get_variables() * 2)):
+        titles += responsesTitles
+
+        for index in range(365*4+20):
+            titles += 'Day ' + str(index) + ','
+
+    file.write(titles)
+
+    # Write each participant in a new line
+    for p in participants:
+        file.write(p.get_as_csv() + '\n')
+
+    # Close the file
+    file.close()
+
 
 # Plots the data for a certain User ID:
 # spline: set to True if instead of showing only the participant's points,
@@ -350,6 +378,26 @@ class Subject:
         # If this point is reached, then the response was not found
         return 'not found'
 
+    # Returns the Subject as a CSV line
+    def get_as_csv( self ):
+        csvArray = [
+                    self.userId,
+                    self.age,
+                    self.datetime,
+                    self.gender,
+                   ]
+
+        # Add the responses to the array
+        for v in get_variables():
+             # Stage I
+            csvArray += self.get_response(v, 1).get_as_array()
+
+        for v in get_variables():
+             # Stage II
+            csvArray += self.get_response(v, 2).get_as_array()
+
+        return array_to_csv(csvArray)
+
     # Returns the items of a specific response/plot
     def get_response_items( self, variable, stage, subcondition=''):
         return self.get_response(variable, stage, subcondition).items
@@ -588,12 +636,38 @@ class Response:
         return catmull_rom_chain(self.get_points(True), nPoints)
 
     # Returns the FILTERED Centripetal Catmull-Rom points of the current Response
-    # By filtered, it means there is one point per day
-    def get_catmull_rom( self ):
+    # By filtered, it means there is one point per day.
+    # This returns an array of arrays, in this form: [[x0, y0], [x1, y1], ...]
+    def get_catmull_rom( self, addNils=False ):
+        # Linear interpolation because there are only two points
         if self.get_items_count == 2:
-            return self.__get_linear_interpolation()
-        else: # Length larger than 2, because the minimum length is 2
-            return self.__get_catmull_rom()
+            points = self.__get_linear_interpolation()
+        # Length larger than 2, because the minimum length is 2
+        else:
+            points = self.__get_catmull_rom()
+
+        # Should nil values be added to the array?
+        if addNils:
+            return self.__add_nils_to_interpolation(points)
+        else:
+            return points
+
+    # Given the nature of the experiment, there are points on the beginning
+    # and end of the graph that have no values
+    def __add_nils_to_interpolation( self, points):
+
+        # Get the first and last days of the interpolation
+        firstDay = points[0][0]
+        lastDay = points[len(points)-1][0]
+
+        for day in range(0, firstDay):
+            points = [[firstDay - day - 1, 'nil']] + points #Preppend
+
+        for day in range(lastDay+1, 365*4+20):
+            points = points + [[day, 'nil']] #Append
+
+        return points
+
 
     # Returns the linear interpolation of the items
     def __get_linear_interpolation( self ):
@@ -616,6 +690,29 @@ class Response:
             points.append([x, y])
 
         return points
+
+    # Returns the Response as an array
+    def get_as_array( self ):
+        # The returned points correspond to the Catmull-Rom ones
+        points = self.get_catmull_rom(True)
+
+        # Get only the yAxis
+        yAxis = []
+        for p in points:
+            yAxis.append(p[1])
+
+        array = [
+            self.timestamp,
+            self.datetime,
+            self.stage,
+            self.condition,
+            self.subcondition,
+            self.pageIndex,
+            self.noiseIndex,
+            array_to_csv(yAxis)
+        ]
+
+        return array
 
     # Returns number of days between the target date and the 31st of
     # december of 2000. Given the data, the least integer will be 0
@@ -811,6 +908,11 @@ def plot_catmull_rom( points ):
     points = catmull_rom_chain(data, 1500)
     trace = points_to_trace(points)
     plotly.offline.plot([trace], filename='basic-line')
+
+# Returns an array as a csv
+def array_to_csv(array):
+    # It does so by transforming the array into a String, and replacing the brackets
+    return str(array).replace('[', '').replace(']', '').replace("'", '')
 
 # Start:
 #plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
