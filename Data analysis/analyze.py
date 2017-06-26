@@ -14,6 +14,9 @@ import plotly
 from plotly import tools
 import plotly.plotly as py
 import plotly.graph_objs as go
+import plotly.figure_factory as ff
+
+import scipy
 
 # Datetime
 import datetime
@@ -30,6 +33,8 @@ import numpy
 filepath = 'C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/bayesian-forecasting-export.json'
 dataset = json.load(open(filepath, 'r'))
 
+plotly.offline.init_notebook_mode()
+
 ##############################################################
 ##                     JSON PROCESSING                      ##
 ##############################################################
@@ -43,52 +48,57 @@ def create_subjects():
 
     return participants
 
-# Plots all the curves (Stage II) associated to a target variable
-# variable: (String) name of the variable to be plotted
-# trend: (String) {'stable', 'up', 'down'}
-# noiseIndex: Integer {0, 1, 2}. Which of the three noise sets to target
-def plot_variable(variable, trend='stable', noiseIndex=0):
-    # Get the responses for the target variable
-    target_responses = responses(variable, trend, noiseIndex)
-
-    # Generate the plotly traces for those responses
-    traces = []
-    for r in target_responses:
-        traces.append(r.get_trace())
-
-    # Plot the trends in one plot
-    plotly.offline.plot(traces, filename='line-mode')
-
 
 # Returns all the responses for a certain variable, with a specific trend and noise
 # trend = {'up', 'stable', 'down'}.  noise = {0, 1, 2}
-def responses(variable, trend='stable', noiseIndex=0):
-    # Participants with the target noise
-    participants = subjects_noise(noiseIndex)
+# filter: whether to filter out participants that are not valid
+def responses(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
+    # Participants
+    participants = get_subjects(filter)
 
-    # Responses with the target variable and trend
+    # Responses with the target stage, variable, trend, and noiseIndex
     responses = []
 
     for p in participants:
-        # Get the response for the target variable, at stage 2, of the target trend
-        r = p.get_response(variable, 2, trend)
+        # Get the response for the target variable, at Stage II, of the target trend
+        r = p.get_response(variable, stage, trend)
 
+        # If the response was successfully found
         if r != 'not found':
-            responses.append(r)
+            # And if we are interested in Stage II, we also have to check the noiseIndex
+            if (stage == 2 and r.noiseIndex == noiseIndex) or stage==1:
+                responses.append(r)
 
     return responses
 
+# Creates a CSV with the following structure, in columns:
+# UserID, Condition, Subcondition, Random Set, [x, y]
+def generate_csv():
+    participants = get_subjects()
 
+    # Create new file (if it exists, it will rewrite it)
+    file = open('catmull-rom-dataset.csv', 'w')
 
-# Get all the subjects of the target noise. noise = {1,2,3}
-def subjects_noise(noiseIndex):
-    array = []
+    # Titles:
+    titles = 'userId, age, datetime, gender,'
 
-    for s in subjects:
-        if s.get_noise_index() == noiseIndex:
-            array.append(s)
+    responsesTitles = 'timestamp,datetime,stage,condition,subcondition,pageIndex,noiseIndex,'
 
-    return array
+    for index in range(len(get_variables() * 2)):
+        titles += responsesTitles
+
+        for index in range(365*4+20):
+            titles += 'Day ' + str(index) + ','
+
+    file.write(titles)
+
+    # Write each participant in a new line
+    for p in participants:
+        file.write(p.get_as_csv() + '\n')
+
+    # Close the file
+    file.close()
+
 
 # Plots the data for a certain User ID:
 # spline: set to True if instead of showing only the participant's points,
@@ -98,20 +108,181 @@ def plot_pid( userId, spline=False):
 
 # Returns the subject with the target User ID
 def get_subject_pid( userId ):
-    for s in subjects:
+    for s in get_subjects():
         if s.userId == userId:
             return s
 
 # Prints the invalid subjects
 def print_invalid_subjects():
-    for s in subjects:
+    for s in all_subjects:
         if not s.is_valid():
-            print(s.userId)
+            print(s.userId + ': ' + str(s.is_valid_verbose()))
+
+# Returns the list of subjects
+# One can decide whether to filter out those participants that are deemed not valid.
+def get_subjects( filterNotValidSubjects = False ):
+    if filterNotValidSubjects:
+        list = []
+
+        for s in all_subjects:
+            if s.is_valid():
+                list.append(s)
+
+        return list
+
+    else:
+        return all_subjects
+
+##############################################################
+##                   ALL PARTICIPANTS ANALYSIS              ##
+##############################################################
+
+# Plots ALL the variables
+def plot_variables(filter=False, oneColor=True):
+    all_variables_traces = []
+    subplot_titles = []
+
+    # Build the traces and the subtitles
+    for v in get_variables():
+        # Stage I subtitle
+        subplot_titles.append(v.title())
+
+        # This list will hold several lists of traces
+        variable_traces = []
+
+        # Stage I traces
+        variable_traces.append(get_traces_variable(v, filter, oneColor=oneColor))
+
+        # Stage II
+        for subcondition in get_subconditions():
+            # Traces
+            variable_traces.append( get_traces_variable(v, filter, 2, subcondition, 0, oneColor=oneColor) +
+                                    get_traces_variable(v, filter, 2, subcondition, 1, oneColor=oneColor) +
+                                    get_traces_variable(v, filter, 2, subcondition, 2, oneColor=oneColor) )
+
+            # Subtitles
+            subplot_titles.append('Stage 2 (' + subcondition + ')')
+
+        # Append the traces to the 'all traces' variable
+        all_variables_traces.append(variable_traces)
+
+    # Create the plot
+    colsCount = 4
+    fig = tools.make_subplots(rows=6, cols=colsCount, subplot_titles=(subplot_titles), print_grid=False)
+
+    # Put the traces in position
+    for i in range(len(all_variables_traces)):
+        # Append all the traces to that figure:
+        for j in range(len(all_variables_traces[i])):
+
+            # Traces for a specific variable, in a specific situation
+            traces = all_variables_traces[i][j]
+
+            # For all the traces, append it to the figure:
+            for t in traces:
+                fig.append_trace(t, i+1, j+1)
+
+
+    # Modify the ranges of the y-axis
+    for index in range(len(get_variables())):
+        # For every column
+        for col in range(colsCount):
+            # Identify the plot
+            plot_identifier = 'yaxis' + str(index * colsCount + col + 1)
+
+            # Update the range
+            fig['layout'][plot_identifier].update(range = get_range(get_variables()[index]) )
+
+    # Set up the dimensions of the plot
+    fig['layout'].update(height=2400, width=1200, title='Responses')
+
+    # Plot the graphs
+    plotly.offline.plot(fig, filename='jupyter/all_responses.html')
+
+
+# Plots all the curves (Stage II) associated to a target variable
+# variable: (String) name of the variable to be plotted
+# trend: (String) {'stable', 'up', 'down'}
+# noiseIndex: Integer {0, 1, 2}. Which of the three noise sets to target
+def plot_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0, oneColor=False):
+    # Get the traces
+    traces = get_traces_variable(variable, filter, stage, trend, noiseIndex, oneColor=oneColor)
+
+    # Plot the trends in one plot
+    plotly.offline.iplot(traces, filename='jupyter/plot_variable.html')
+
+def get_traces_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0, oneColor=False):
+    # Get the responses for the target variable
+    target_responses = responses(variable, filter, stage, trend, noiseIndex)
+
+    # Generate the plotly traces for those responses
+    traces = []
+    for r in target_responses:
+        traces.append(r.get_trace(showUserId=True, oneColor=oneColor))
+
+    return traces
+
+
+# Returns a list with the number of items each participants added for a
+# certain variable in a certain stage
+# filter: (Boolean) if True, if filters the participants who are NOT valid
+def items_count( variable, stage, filter=False):
+    # Get the responses for the target variable
+    target_responses = responses(variable, filter, stage)
+
+    # Generate the item's count for each response
+    counts = []
+    for r in target_responses:
+        # Append the number of points that the participant added on that plot
+        counts.append(r.get_participant_items_count())
+
+    return counts
+
+# Prints a histogram for all the variables count on a certain stage
+def stage_items_count_histogram( stage, filter=False ):
+    counts_list = []
+
+    # Get the items count for every variable, for a target stage
+    variables = get_variables()
+    for v in variables:
+        # Get and append the items' count for a specific variable
+        counts_list.append(items_count(v, stage, filter))
+
+    title = "Histogram of Items' Count: Stage " + str(stage)
+
+    # Show the histogram
+    show_histogram(counts_list, variables, title)
+
+# Prints a histogram for all the variables count on a certain stage
+def variable_items_count_histogram( variable, filter=False ):
+    counts_list = []
+
+    # Get the counts for Stage I and II
+    counts_list.append(items_count(variable, 1, filter))
+    counts_list.append(items_count(variable, 2, filter))
+
+    # Build labels
+    labels = [ get_label(variable, 1), get_label(variable, 2) ]
+
+    title = "Histogram of Items' Count: " + get_label(variable)
+
+    # Show the histogram
+    show_histogram(counts_list, labels, title)
 
 
 ##############################################################
 ##                          TOOLS                           ##
 ##############################################################
+
+def show_histogram(data, labels, title):
+    # Build the histogram
+    fig = ff.create_distplot(data, labels, show_rug=False,
+                             histnorm='probability', curve_type='normal')
+
+    fig['layout'].update(title=title, xaxis=dict(range=[0, 50]))
+
+    plotly.offline.iplot(fig, filename='jupyter/histogram.html')
+
 
 def get_range( variable ):
   if variable == "temperature":
@@ -131,6 +302,16 @@ def get_range( variable ):
 def get_variables():
     return ['temperature', 'rain', 'sales', 'gym_memberships', 'wage', 'facebook_friends']
 
+def get_subconditions():
+    return ['up', 'stable', 'down']
+
+# Return the label for a certain variable+stage
+def get_label(variable, stage=0):
+    if stage == 0:
+        return variable.title()
+    else:
+        return 'Stage ' + str(stage) + ' (' + variable.title() + ')'
+
 # Returns the number of participants
 def get_number_of_subjects():
     return len(subjects)
@@ -144,10 +325,10 @@ class Subject:
 
     def __init__(self, subjectData):
         self.rawData = subjectData
-        self.__processSubjectRawData()
+        self.__process_subject_raw_data()
 
     # Processes the raw data received in the constructor
-    def __processSubjectRawData( self ):
+    def __process_subject_raw_data( self ):
         self.userId = self.rawData['userId']
         self.sessionId = self.rawData['sessionId']
         self.age = self.rawData['age']
@@ -155,10 +336,12 @@ class Subject:
         self.gender = self.rawData['gender']
         self.rawResponses = self.rawData['historicalData']
 
-        self.responses = self.__processResponses(self.rawResponses)
+        self.responses = self.__process_responses(self.rawResponses)
+
+        self.__set_other_variables()
 
     # Processes the raw reponses by constructing a Response object for each
-    def __processResponses( self, rawResponses ):
+    def __process_responses( self, rawResponses ):
         responses = []
 
         for response in rawResponses:
@@ -166,6 +349,15 @@ class Subject:
             responses.append(Response(response))
 
         return responses
+
+    # Sets the value of other variables that are relevant to the Response
+    def __set_other_variables( self ):
+        # Now that all the responses have been created, calculate the noiseIndex
+        noiseIndex = self.get_noise_index()
+        # And set the noiseIndex to every response
+        for r in self.responses:
+            r.noiseIndex = noiseIndex
+            r.userId = self.userId
 
 
     #################### GETTERS ####################
@@ -186,19 +378,55 @@ class Subject:
         # If this point is reached, then the response was not found
         return 'not found'
 
+    # Returns the Subject as a CSV line
+    def get_as_csv( self ):
+        csvArray = [
+                    self.userId,
+                    self.age,
+                    self.datetime,
+                    self.gender,
+                   ]
+
+        # Add the responses to the array
+        for v in get_variables():
+             # Stage I
+            csvArray += self.get_response(v, 1).get_as_array()
+
+        for v in get_variables():
+             # Stage II
+            csvArray += self.get_response(v, 2).get_as_array()
+
+        return array_to_csv(csvArray)
+
     # Returns the items of a specific response/plot
     def get_response_items( self, variable, stage, subcondition=''):
         return self.get_response(variable, stage, subcondition).items
 
-
     # Returns true if the subject is valid for analysis
     def is_valid( self ):
-        return len(self.responses) == 12
+        return self.is_valid_verbose() == True
+
+    # Returns True if the participant is valid. If not, it returns a String
+    # explaining why not.
+    def is_valid_verbose ( self ):
+        if len(self.responses) != 12:
+            return 'Participant did not answer the twelve plots.'
+
+        if self.userId == 'a106':
+            return 'Participant misunderstood the instructions and always added a point on the far right and far bottom.'
+
+        if self.userId == 'a021':
+            return 'Response in Temperature (constant -10) indicates a non-interested participant.'
+
+        if self.userId == 'a118':
+            return 'Participant indicated that he had trouble with the interface.'
+
+        return True
 
     # Returns the index of the noise set that was used:
     def get_noise_index( self ):
         # TODO: in the next version, this parameter is being saved in the experiment as 'noiseArray'
-        # Get the items for the rain
+        # Get the items for the rain (it could be anyone of them)
         r = self.get_response_items('rain', 2)
 
         if round(r['y'][1], 5) == round(33.4532551009561, 5) or round(r['y'][1], 5) == round(21.5467448990438, 5) or round(r['y'][1], 5) == round(38.4532551009561, 5):
@@ -218,8 +446,8 @@ class Subject:
     # spline: (Boolean) defines whether the Traces are for the Spline or not
     def traces_variable( self, variable, spline=False ):
         # Get the traces for the same variable, stage 1 and stage 2
-        trace1 = self.get_response(variable, 1).get_trace(spline)
-        trace2 = self.get_response(variable, 2).get_trace(spline)
+        trace1 = self.get_response(variable, 1).get_trace(spline, hoverinfo='all')
+        trace2 = self.get_response(variable, 2).get_trace(spline, hoverinfo='all')
 
         return [trace1, trace2]
 
@@ -229,6 +457,7 @@ class Subject:
         traces = []
         subplot_titles = []
 
+        # Build the traces and the titles
         for v in get_variables():
             # Create a pair of traces for each variable
             traces.append( self.traces_variable(v, spline) )
@@ -238,7 +467,7 @@ class Subject:
             subplot_titles.append('Stage 2 (' + self.get_response(v, 2).get_subcondition_name() + ')')
 
         # Add the subtitles
-        fig = tools.make_subplots(rows=6, cols=2, subplot_titles=(subplot_titles))
+        fig = tools.make_subplots(rows=6, cols=2, subplot_titles=(subplot_titles), print_grid=False)
 
         # Put the traces in position
         for index in range(0, len(traces)):
@@ -256,10 +485,10 @@ class Subject:
             fig['layout'][second].update(range = get_range(get_variables()[index]) )
 
         # Set up the dimensions of the plot
-        fig['layout'].update(height=2400, width=1400, title='Prolific ID: ' + self.userId)
+        fig['layout'].update(height=1200, width=800, title='Prolific ID: ' + self.userId)
 
         # Plot the graphs
-        plotly.offline.plot(fig, filename='make-subplots-multiple-with-titles')
+        plotly.offline.iplot(fig, filename='jupyter/subject_responses.html')
 
 ##############################################################
 ##                         RESPONSE                         ##
@@ -300,7 +529,16 @@ class Response:
         return {'x': xdata, 'y': ydata}
 
     # Returns the trace of the response, for plotly
-    def get_trace( self, spline=False):
+    def get_trace( self, spline=False, showUserId=False, hoverinfo='none', oneColor=False):
+
+        # If showUserId is True, then the name of the Trace should be the userId
+        traceName = self.userId if showUserId else 'Stage ' + str(self.stage)
+
+        # Line color and alpha
+        lineOptions = dict(shape='spline')
+        if oneColor:
+            lineOptions['color'] = 'rgba(205, 12, 24, 0.4)'
+
         # If spline is True, then return the spline's Trace object
         if spline:
             return self.get_spline_trace()
@@ -309,10 +547,10 @@ class Response:
                     x = self.items['x'],
                     y = self.items['y'],
                     mode = 'lines+markers',
-                    name = 'Stage ' + str(self.stage),
-                    line = dict(
-                        shape='spline'
-                    )
+                    name = traceName,
+                    line = lineOptions,
+                    hoverinfo = hoverinfo,
+                    showlegend = not oneColor
                 )
 
     # Returns the trace of the spline
@@ -321,12 +559,25 @@ class Response:
         return self.__points_to_trace(self.get_catmull_rom())
 
     # Returns the number of items
-    def get_number_of_items( self ):
-        if self.items['x'] == self.items['y']:
-            return self.items['x']
+    def get_items_count( self ):
+        # If the lengths of the 'x' and 'y' lists are equivalent (they SHOULD be)
+        if len(self.items['x']) == len(self.items['y']):
+            # Return the length of one of them
+            return len(self.items['x'])
+        # In any other case, print and return an error
         else:
+            print('error: ' + str(self.items))
             return 'error'
 
+    # Return the amount of items added by the participant (i.e. subtracting the automatic ones)
+    def get_participant_items_count( self ):
+        # Stage I
+        if self.stage == 1:
+            return self.get_items_count()
+        # Stage II
+        else:
+            # Because on Stage II, 5 items are initially shown and cannot be removed
+            return self.get_items_count() - 5
 
     # Receives a date string with format "yyyy-mm-dd" and returns the
     # corresponding Date object
@@ -385,12 +636,38 @@ class Response:
         return catmull_rom_chain(self.get_points(True), nPoints)
 
     # Returns the FILTERED Centripetal Catmull-Rom points of the current Response
-    # By filtered, it means there is one point per day
-    def get_catmull_rom( self ):
-        if self.get_number_of_items == 2:
-            return self.__get_linear_interpolation()
-        else: # Length larger than 2, because the minimum length is 2
-            return self.__get_catmull_rom()
+    # By filtered, it means there is one point per day.
+    # This returns an array of arrays, in this form: [[x0, y0], [x1, y1], ...]
+    def get_catmull_rom( self, addNils=False ):
+        # Linear interpolation because there are only two points
+        if self.get_items_count == 2:
+            points = self.__get_linear_interpolation()
+        # Length larger than 2, because the minimum length is 2
+        else:
+            points = self.__get_catmull_rom()
+
+        # Should nil values be added to the array?
+        if addNils:
+            return self.__add_nils_to_interpolation(points)
+        else:
+            return points
+
+    # Given the nature of the experiment, there are points on the beginning
+    # and end of the graph that have no values
+    def __add_nils_to_interpolation( self, points):
+
+        # Get the first and last days of the interpolation
+        firstDay = points[0][0]
+        lastDay = points[len(points)-1][0]
+
+        for day in range(0, firstDay):
+            points = [[firstDay - day - 1, 'nil']] + points #Preppend
+
+        for day in range(lastDay+1, 365*4+20):
+            points = points + [[day, 'nil']] #Append
+
+        return points
+
 
     # Returns the linear interpolation of the items
     def __get_linear_interpolation( self ):
@@ -413,6 +690,29 @@ class Response:
             points.append([x, y])
 
         return points
+
+    # Returns the Response as an array
+    def get_as_array( self ):
+        # The returned points correspond to the Catmull-Rom ones
+        points = self.get_catmull_rom(True)
+
+        # Get only the yAxis
+        yAxis = []
+        for p in points:
+            yAxis.append(p[1])
+
+        array = [
+            self.timestamp,
+            self.datetime,
+            self.stage,
+            self.condition,
+            self.subcondition,
+            self.pageIndex,
+            self.noiseIndex,
+            array_to_csv(yAxis)
+        ]
+
+        return array
 
     # Returns number of days between the target date and the 31st of
     # december of 2000. Given the data, the least integer will be 0
@@ -458,8 +758,9 @@ class Response:
                 minimumDistance = distance
                 indexOfMinimum = i
             else:
-                # Given that the distance should decrease until the point is passed,
-                # if the new distance is larger than the minimum, then the search is over
+                # Given that the distance is described by a convex function,
+                # once the distance increases, then it means the minimum has
+                # been passed
                 break
 
         # Return the index where the minimum distance was found
@@ -608,7 +909,11 @@ def plot_catmull_rom( points ):
     trace = points_to_trace(points)
     plotly.offline.plot([trace], filename='basic-line')
 
+# Returns an array as a csv
+def array_to_csv(array):
+    # It does so by transforming the array into a String, and replacing the brackets
+    return str(array).replace('[', '').replace(']', '').replace("'", '')
+
 # Start:
 #plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
-subjects = create_subjects()
-s = subjects[0]
+all_subjects = create_subjects()

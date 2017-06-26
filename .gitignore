@@ -2,3 +2,13 @@ Data analysis/Translation.xlsx
 Data analysis/.idea/Data analysis.iml
 *.xml
 Data analysis/basic-line.html
+Data analysis/Distplot with Multiple Datasets.html
+Data analysis/histogram.html
+*.pyc
+Data analysis/.ipynb_checkpoints/Analysis-checkpoint.ipynb
+Data analysis/jupyter/histogram.html
+Data analysis/make-subplots-multiple-with-titles.html
+Data analysis/jupyter/subject_responses.html
+Data analysis/subject_responses.html
+Data analysis/line-mode.html
+Data analysis/jupyter/all_responses.html
