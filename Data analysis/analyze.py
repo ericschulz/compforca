@@ -840,7 +840,9 @@ class Response:
                 # Given that the distance is described by a convex function,
                 # once the distance increases, then it means the minimum has
                 # been passed
-                break
+                
+                if distance - minimumDistance > 10:
+                    break
 
         # Return the index where the minimum distance was found
         return indexOfMinimum
@@ -1007,3 +1009,5 @@ def days_to_date( day ):
 # Start:
 #plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
 all_subjects = create_subjects()
+
+get_subject_pid('a013').get_response('rain', 1).get_catmull_rom()
