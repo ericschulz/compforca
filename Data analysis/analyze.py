@@ -89,7 +89,7 @@ def generate_csv():
     titles += 'timestamp,datetime,stage,condition,subcondition,pageIndex,noiseIndex,'
 
     for index in range(daysMax):
-        titles += 'Day ' + str(index) + ','
+        titles += 'day' + str(index) + ','
 
     file.write(titles)
 
@@ -152,10 +152,10 @@ def get_median(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
     # Get all the corresponding responses
     targetResponses = responses(variable, filter, stage, trend, noiseIndex)
 
-    # For each one of them, get the full (i.e., adding nils) Catmull-Rom spline
+    # For each one of them, get the full Catmull-Rom spline (i.e., adding nils)
     splines = []
     for r in targetResponses:
-        splines.append(r.get_catmull_rom(True))
+        splines.append(r.get_catmull_rom(addNils=True))
 
     median = []
 
@@ -176,7 +176,8 @@ def get_median(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
 
         # If the day had no 'nil' values, add the [day,median] array
         if validDay:
-            median.append([day, scipy.median(values)])
+            # Append the median value
+            median.append([days_to_date(day), scipy.median(values)])
 
     return median
 
@@ -280,8 +281,8 @@ def get_traces_variable(variable, filter=False, stage=1, trend='stable', noiseIn
 
     # Generate the plotly traces for those responses
     traces = []
-    for r in target_responses:
-        traces.append(r.get_trace(showUserId=True, oneColor=oneColor))
+    #for r in target_responses:
+        #traces.append(r.get_trace(showUserId=True, oneColor=oneColor))
 
     # If the Median is to be included
     if withMedian:
@@ -697,7 +698,7 @@ class Response:
             y = self.items['y'][i]
 
             if integer_dates:
-                x = self.__date_to_days(self.items['x'][i])
+                x = date_to_days(self.items['x'][i])
             else:
                 x = self.items['x'][i]
 
@@ -715,7 +716,7 @@ class Response:
     # Returns the FILTERED Centripetal Catmull-Rom points of the current Response
     # By filtered, it means there is one point per day.
     # This returns an array of arrays, in this form: [[x0, y0], [x1, y1], ...]
-    def get_catmull_rom( self, addNils=False ):
+    def get_catmull_rom( self, addNils=False, useDates=False ):
         # Linear interpolation because there are only two points
         if self.get_items_count == 2:
             points = self.__get_linear_interpolation()
@@ -725,9 +726,14 @@ class Response:
 
         # Should nil values be added to the array?
         if addNils:
-            return self.__add_nils_to_interpolation(points)
-        else:
-            return points
+            points = self.__add_nils_to_interpolation(points)
+
+        # Transform the dates
+        if useDates:
+            for p in points:
+                p[0] = days_to_date(p[0])
+
+        return points
 
     # Given the nature of the experiment, there are points on the beginning
     # and end of the graph that have no values
@@ -749,8 +755,8 @@ class Response:
     # Returns the linear interpolation of the items
     def __get_linear_interpolation( self ):
         # Get the 'x' and 'y' values of the first and last point
-        firstX = self.__date_to_days(self.items['x'][0])
-        lastX = self.__date_to_days(self.items['x'][len(self.items)-1])
+        firstX = date_to_days(self.items['x'][0])
+        lastX = date_to_days(self.items['x'][len(self.items)-1])
 
         firstY = self.items['y'][1]
         lastY = self.items['y'][len(self.items)-1]
@@ -791,10 +797,6 @@ class Response:
 
         return array
 
-    # Returns number of days between the target date and the 31st of
-    # december of 2000. Given the data, the least integer will be 0
-    def __date_to_days( self, date ):
-        return (date - datetime.date(2000, 12, 31)).days
 
     # Returns the Catmull interpolation. Only to be used when the
     # number of items is three or more
@@ -976,7 +978,7 @@ def points_to_trace( points ):
         x = x,
         y = y,
         mode = 'lines+markers',
-        line = dict(shape='spline', color='rgba(255, 255, 255, 1)')
+        line = dict(shape='spline', color='rgba(0, 0, 255, 1)')
     )
 
     return trace
@@ -991,6 +993,16 @@ def plot_catmull_rom( points ):
 def array_to_csv(array):
     # It does so by transforming the array into a String, and replacing the brackets
     return str(array).replace('[', '').replace(']', '').replace("'", '')
+
+# Returns number of days between the target date and the 31st of
+# december of 2000. Given the data, the least integer will be 0
+def date_to_days( date ):
+    return (date - datetime.date(2000, 12, 31)).days
+
+# Returns a date
+def days_to_date( day ):
+    return datetime.date(2000, 12, 31) + datetime.timedelta(days = day)
+
 
 # Start:
 #plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
