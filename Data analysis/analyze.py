@@ -281,8 +281,8 @@ def get_traces_variable(variable, filter=False, stage=1, trend='stable', noiseIn
 
     # Generate the plotly traces for those responses
     traces = []
-    #for r in target_responses:
-        #traces.append(r.get_trace(showUserId=True, oneColor=oneColor))
+    for r in target_responses:
+        traces.append(r.get_trace(showUserId=True, oneColor=oneColor))
 
     # If the Median is to be included
     if withMedian:
