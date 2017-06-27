@@ -30,8 +30,12 @@ import numpy
 ##############################################################
 
 # Dataset variables
-filepath = 'C:/Users/panch/Google Drive/Proyectos/GitHub/compforcaQV/Data analysis/bayesian-forecasting-export.json'
+filepath = 'bayesian-forecasting-export.json'
 dataset = json.load(open(filepath, 'r'))
+
+csvFilepath = 'catmull-rom-dataset.csv'
+
+daysMax = 365*4+20
 
 plotly.offline.init_notebook_mode()
 
@@ -77,27 +81,52 @@ def generate_csv():
     participants = get_subjects()
 
     # Create new file (if it exists, it will rewrite it)
-    file = open('catmull-rom-dataset.csv', 'w')
+    file = open(csvFilepath, 'w')
 
     # Titles:
     titles = 'userId, age, datetime, gender,'
 
-    responsesTitles = 'timestamp,datetime,stage,condition,subcondition,pageIndex,noiseIndex,'
+    titles += 'timestamp,datetime,stage,condition,subcondition,pageIndex,noiseIndex,'
 
-    for index in range(len(get_variables() * 2)):
-        titles += responsesTitles
-
-        for index in range(365*4+20):
-            titles += 'Day ' + str(index) + ','
+    for index in range(daysMax):
+        titles += 'Day ' + str(index) + ','
 
     file.write(titles)
 
     # Write each participant in a new line
     for p in participants:
-        file.write(p.get_as_csv() + '\n')
+        # Stage 1
+        for v in get_variables():
+            file.write('\n' + p.get_as_csv(v, 1))
+
+        # Stage 2
+        for v in get_variables():
+            file.write('\n' + p.get_as_csv(v, 2))
 
     # Close the file
     file.close()
+
+def read_csv():
+    # If the file exists
+    if os.path.isfile(csvFilepath):
+        # Open the file, read it, and split it into different lines
+        file = open(csvFilepath, 'r')
+        fileData = file.read().split('\n')
+
+        # For each line, send the information to the corresponding subject
+        for line in fileData:
+            lineAsArray = line.split(',')
+
+            if len(line) > 4 and lineAsArray[0]!='userId':
+                # Get the user Id and then get the corresponding subject
+                userId = lineAsArray[0]
+                s = get_subject_pid(userId)
+
+                # Give the data to the subject
+                s.set_catmull_rom_splines(lineAsArray)
+
+    else:
+        return False
 
 
 # Plots the data for a certain User ID:
@@ -117,6 +146,40 @@ def print_invalid_subjects():
     for s in all_subjects:
         if not s.is_valid():
             print(s.userId + ': ' + str(s.is_valid_verbose()))
+
+# Returns the median of the Catmull-Rom
+def get_median(variable, filter=False, stage=1, trend='stable', noiseIndex=0):
+    # Get all the corresponding responses
+    targetResponses = responses(variable, filter, stage, trend, noiseIndex)
+
+    # For each one of them, get the full (i.e., adding nils) Catmull-Rom spline
+    splines = []
+    for r in targetResponses:
+        splines.append(r.get_catmull_rom(True))
+
+    median = []
+
+    # Calculate the median for the days that have NO-nil value
+    for day in range(daysMax):
+        validDay = True
+        values = []
+
+        for spline in splines:
+            yValue = spline[day][1]
+
+            # If the Y-value for that day is not nil, add it to the values list
+            if yValue != 'nil':
+                values.append(yValue)
+            # In any other case, the day is not valid!
+            else:
+                validDay = False
+
+        # If the day had no 'nil' values, add the [day,median] array
+        if validDay:
+            median.append([day, scipy.median(values)])
+
+    return median
+
 
 # Returns the list of subjects
 # One can decide whether to filter out those participants that are deemed not valid.
@@ -138,7 +201,7 @@ def get_subjects( filterNotValidSubjects = False ):
 ##############################################################
 
 # Plots ALL the variables
-def plot_variables(filter=False, oneColor=True):
+def plot_variables(filter=False, oneColor=True, withMedian=False):
     all_variables_traces = []
     subplot_titles = []
 
@@ -151,14 +214,14 @@ def plot_variables(filter=False, oneColor=True):
         variable_traces = []
 
         # Stage I traces
-        variable_traces.append(get_traces_variable(v, filter, oneColor=oneColor))
+        variable_traces.append(get_traces_variable(v, filter, oneColor=oneColor, withMedian=withMedian))
 
         # Stage II
         for subcondition in get_subconditions():
             # Traces
-            variable_traces.append( get_traces_variable(v, filter, 2, subcondition, 0, oneColor=oneColor) +
-                                    get_traces_variable(v, filter, 2, subcondition, 1, oneColor=oneColor) +
-                                    get_traces_variable(v, filter, 2, subcondition, 2, oneColor=oneColor) )
+            variable_traces.append( get_traces_variable(v, filter, 2, subcondition, 0, oneColor=oneColor, withMedian=withMedian) +
+                                    get_traces_variable(v, filter, 2, subcondition, 1, oneColor=oneColor, withMedian=withMedian) +
+                                    get_traces_variable(v, filter, 2, subcondition, 2, oneColor=oneColor, withMedian=withMedian) )
 
             # Subtitles
             subplot_titles.append('Stage 2 (' + subcondition + ')')
@@ -211,7 +274,7 @@ def plot_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0,
     # Plot the trends in one plot
     plotly.offline.iplot(traces, filename='jupyter/plot_variable.html')
 
-def get_traces_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0, oneColor=False):
+def get_traces_variable(variable, filter=False, stage=1, trend='stable', noiseIndex=0, oneColor=False, withMedian=False):
     # Get the responses for the target variable
     target_responses = responses(variable, filter, stage, trend, noiseIndex)
 
@@ -219,6 +282,12 @@ def get_traces_variable(variable, filter=False, stage=1, trend='stable', noiseIn
     traces = []
     for r in target_responses:
         traces.append(r.get_trace(showUserId=True, oneColor=oneColor))
+
+    # If the Median is to be included
+    if withMedian:
+        median = get_median(responses(variable, filter, stage, trend, noiseIndex))
+
+        traces.append(points_to_trace(median))
 
     return traces
 
@@ -379,7 +448,7 @@ class Subject:
         return 'not found'
 
     # Returns the Subject as a CSV line
-    def get_as_csv( self ):
+    def get_as_csv( self, variable, stage):
         csvArray = [
                     self.userId,
                     self.age,
@@ -387,14 +456,7 @@ class Subject:
                     self.gender,
                    ]
 
-        # Add the responses to the array
-        for v in get_variables():
-             # Stage I
-            csvArray += self.get_response(v, 1).get_as_array()
-
-        for v in get_variables():
-             # Stage II
-            csvArray += self.get_response(v, 2).get_as_array()
+        csvArray += self.get_response(variable, stage).get_as_array()
 
         return array_to_csv(csvArray)
 
@@ -438,7 +500,22 @@ class Subject:
         else:
             return 'error'
 
-        #print (str(r['y'][0]) + ',' + str(r['y'][1]) + ',' + str(r['y'][2]) + ',' + str(r['y'][3]) + ',' + str(r['y'][4]))
+
+    # It receives a csv line that has to process in order to set the Catmull-Rom splines
+    def set_catmull_rom_splines(self, csvLineArray):
+        # TODO
+
+        3 + 4*index
+        3 + 3*index
+
+        #titles = 'userId, age, datetime, gender,'
+        #responsesTitles = 'timestamp,datetime,stage,condition,subcondition,pageIndex,noiseIndex,'
+
+        #for index in range(len(get_variables() * 2)):
+        #    titles += responsesTitles
+        #    for index in range(daysMax):
+
+
 
 
     # Displays a plot for a single subject, and a single variable
@@ -663,7 +740,7 @@ class Response:
         for day in range(0, firstDay):
             points = [[firstDay - day - 1, 'nil']] + points #Preppend
 
-        for day in range(lastDay+1, 365*4+20):
+        for day in range(lastDay+1, daysMax):
             points = points + [[day, 'nil']] #Append
 
         return points
@@ -898,7 +975,8 @@ def points_to_trace( points ):
     trace = go.Scatter(
         x = x,
         y = y,
-        mode = 'lines+markers'
+        mode = 'lines+markers',
+        line = dict(shape='spline', color='rgba(255, 255, 255, 1)')
     )
 
     return trace
