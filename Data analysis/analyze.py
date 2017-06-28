@@ -840,7 +840,7 @@ class Response:
                 # Given that the distance is described by a convex function,
                 # once the distance increases, then it means the minimum has
                 # been passed
-                
+
                 if distance - minimumDistance > 10:
                     break
 
