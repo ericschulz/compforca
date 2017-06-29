@@ -86,7 +86,7 @@ def generate_csv():
     # Titles:
     titles = 'userId, age, datetime, gender,'
 
-    titles += 'timestamp,datetime,stage,condition,subcondition,pageIndex,noiseIndex,'
+    titles += 'timestamp,datetime,stage,scenario,subcondition,pageIndex,noiseIndex,'
 
     for index in range(daysMax):
         titles += 'day' + str(index) + ','
