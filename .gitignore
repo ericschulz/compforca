@@ -17,3 +17,4 @@ Data analysis/~$Noise analysis.xlsx
 Data analysis/.ipynb_checkpoints/Catmull-Rom Analysis-checkpoint.ipynb
 Data analysis/libs
 *.json
+Data analysis/output/results_posterior.json
