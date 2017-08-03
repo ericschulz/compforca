@@ -6,9 +6,9 @@ library(plyr)
 
 library(tidyverse)
 library(DT) # dependency
-library(ggthemes) # dependency
+#library(ggthemes) # dependency
 
-library(plotly)
+#library(plotly)
 
 
 ################################################################################
