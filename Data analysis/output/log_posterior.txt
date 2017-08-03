@@ -1,0 +1,5541 @@
+
+
+
+
+
+
+Jupyter Notebook
+Compositional Analysis - GPflow Last Checkpoint: Yesterday at 10:29 PM (unsaved changes) [Python 3]
+
+Python 3
+
+    File
+    Edit
+    View
+    Insert
+    Cell
+    Kernel
+    Widgets
+    Help
+
+Libraries
+
+import GPflow
+
+import numpy as np
+
+import matplotlib.pyplot as plt
+
+plt.style.use('ggplot')
+
+import tensorflow as tf
+
+%matplotlib inline
+
+​
+
+import time
+
+import copy
+
+import json
+
+Import CSV
+
+data_prior = np.genfromtxt(fname = "data/for_composititional_analysis_prior.csv",
+
+                     delimiter = ',',
+
+                     usecols = (1,2,3,4,5),
+
+                     skip_header = 1,
+
+                     dtype=None)
+
+data_posterior =  np.genfromtxt(fname = "data/for_composititional_analysis_posterior.csv",
+
+                                 delimiter = ',',
+
+                                 usecols = (1,2,3,4,5,6),
+
+                                 skip_header = 1,
+
+                                 dtype=None)
+
+# Transformation of array to matrix
+
+def array_to_matrix(x):
+
+    X = []
+
+    for i in range(len(x)):
+
+        X.append([float(x[i])])
+
+    X = np.array(X)
+
+    return X
+
+Gaussian Processes
+
+Docs:
+
+    GP Regression
+
+def compute(X, Y, kernel_name):
+
+    # Get kernel
+
+    kernel = get_new_kernel(kernel_name)
+
+
+
+    model = GPflow.gpr.GPR(X, Y, kern = kernel)
+
+
+
+    try:
+
+        model.optimize()
+
+    except:
+
+        # Add white kernel
+
+        w = GPflow.kernels.White(1, variance = 0.05)
+
+        w.variance.fixed = True
+
+        model = GPflow.gpr.GPR(X, Y, kern = kernel + w)
+
+
+
+        try:
+
+            print('Adding White Kernel to', kernel_name)
+
+            model.optimize()
+
+        except:
+
+            print('Exception caught computing', kernel_name)
+
+
+
+    return model
+
+def lml(model):
+
+    """Log marginal likelihood of a GP"""
+
+
+
+    try:
+
+        return model.compute_log_likelihood()
+
+    except:
+
+        print('Exception caught in lml')
+
+        return -999999999
+
+def predict(gps, X):
+
+    predictions = {}
+
+
+
+    # For every GP, build predictions
+
+    for key in gps.keys():
+
+
+
+        try:
+
+            mean, var = gps[key].predict_y(X)
+
+        except:
+
+            print('Exception caught in predict')
+
+            mean, var = np.array([0]), np.array([0])
+
+
+
+        predictions[key] = {'mean': mean.tolist(),
+
+                            'var': var.tolist()}
+
+
+
+    return predictions
+
+def get_new_kernel(kernel_string):
+
+    # Initial new non-optimized kernels
+
+    l = GPflow.kernels.Linear(1)
+
+    p = GPflow.kernels.PeriodicKernel(1)
+
+    r = GPflow.kernels.RBF(1)
+
+
+
+    if   kernel_string == 'l': return l
+
+    elif kernel_string == 'p': return p
+
+    elif kernel_string == 'r': return r
+
+​
+
+    elif kernel_string == 'l+r': return  l+r
+
+    elif kernel_string == 'l+p': return  l+p
+
+    elif kernel_string == 'p+r': return  p+r
+
+​
+
+    elif kernel_string == 'l*r': return  l*r
+
+    elif kernel_string == 'l*p': return  l*p
+
+    elif kernel_string == 'p*r': return  p*r
+
+​
+
+    elif kernel_string == 'l+r+p': return l+r+p
+
+    elif kernel_string == 'l+r*p': return l+r*p
+
+    elif kernel_string == 'l*r+p': return l*r+p
+
+    elif kernel_string == 'l*p+r': return l*p+r
+
+    elif kernel_string == 'l*r*p': return l*r*p
+
+
+
+    else: return 'error'
+
+def normalize(Y):
+
+    std = np.std(Y)
+
+    mu = np.mean(Y)
+
+
+
+    return ((Y - mu)/std)
+
+
+
+def compute_gps(X, Y0):
+
+    #Y = normalize(Y0)
+
+    Y = Y0
+
+
+
+    gps = {}
+
+​
+
+    gps['l'] = compute(X, Y, 'l')
+
+    gps['p'] = compute(X, Y, 'p')
+
+    gps['r'] = compute(X, Y, 'r')
+
+​
+
+    gps['l+r'] = compute(X, Y, 'l+r')
+
+    gps['l+p'] = compute(X, Y, 'l+p')
+
+    gps['p+r'] = compute(X, Y, 'p+r')
+
+​
+
+    gps['l*r'] = compute(X, Y, 'l*r')
+
+    gps['l*p'] = compute(X, Y, 'l*p')
+
+    gps['p*r'] = compute(X, Y, 'p*r')
+
+​
+
+    gps['l+r+p'] = compute(X, Y, 'l+r+p')
+
+    gps['l+r*p'] = compute(X, Y, 'l+r*p')
+
+    gps['l*r+p'] = compute(X, Y, 'l*r+p')
+
+    gps['l*p+r'] = compute(X, Y, 'l*p+r')
+
+    gps['l*r*p'] = compute(X, Y, 'l*r*p')
+
+
+
+    return gps
+
+def compute_lmls(models):
+
+    lmls = {}
+
+    for key in models.keys():
+
+        lmls[key] = lml(models[key])
+
+
+
+    return lmls
+
+def gps_to_string(gps):
+
+    strings = {}
+
+    for key in gps.keys():
+
+        strings[key] = str(gps[key])
+
+
+
+    return strings
+
+def dict_max(d):
+
+    maxval = max(d.values())
+
+    keys = [k for k,v in d.items() if v==maxval]
+
+    return keys, maxval
+
+def save_results(results, filename):
+
+    with open('output/' + filename + '.json', 'w') as fp:
+
+        json.dump(results, fp)
+
+Xpredictions = np.linspace(31, 365*4, int(365*4-31+1))[:,None]
+
+Compute Gaussian Process Models for a dataset
+
+def compute_gps_for_dataset(dataset, Xpredictions=Xpredictions):
+
+    t0 = time.time()
+
+
+
+    ids = np.unique(dataset['f0'])
+
+
+
+    gpss_objects = {}
+
+    gpss = {}
+
+    predictions = {}
+
+    lmls = {}
+
+    maxs = {}
+
+
+
+    for i in ids:
+
+        print(i)
+
+        # Filter the relevant data
+
+        filtered_data = dataset[dataset['f0'] == i]
+
+
+
+        # Get X and Y
+
+        X = array_to_matrix(filtered_data['f3'])
+
+        Y = array_to_matrix(filtered_data['f4'])
+
+
+
+        # Compute GPs
+
+        gps = compute_gps(X, Y)
+
+        print('Compute OK')
+
+
+
+        # Calculate the predictions of the GP given the initial data
+
+
+
+        # Find the best fitting GP
+
+        likelihoods = compute_lmls(gps)
+
+        best = dict_max(likelihoods)
+
+        print('LMLs OK')
+
+
+
+        # Make predictions
+
+        gps_predictions = predict(gps, Xpredictions)
+
+        print('Predictions OK')
+
+
+
+        # Save
+
+        i = str(i)
+
+        #gpss_objects[i] = gps
+
+        gpss[i] = gps_to_string(gps) # The GP parameters
+
+        predictions[i] = gps_predictions
+
+        lmls[i] = likelihoods
+
+        maxs[i] = best
+
+
+
+​
+
+    print('Minutes:', str(round((time.time() - t0) / 60)))
+
+
+
+    return {
+
+            'gpss_objects': gpss_objects, #Actual objects
+
+            'gpss': gpss,
+
+            'Xpredictions': Xpredictions.tolist(),
+
+            'predictions': predictions,
+
+            'lmls': lmls,
+
+            'maxs': maxs
+
+           }
+
+def plot(X, Y, mean, var):
+
+    xx = Xpredictions
+
+    plt.clf()
+
+    plt.figure(figsize=(12, 6))
+
+    plt.plot(X, Y, 'kx', mew=2)
+
+    plt.plot(xx, mean, 'b', lw=2)
+
+    plt.fill_between(xx[:,0], mean[:,0] - 2*np.sqrt(var[:,0]), mean[:,0] + 2*np.sqrt(var[:,0]), color='blue', alpha=0.2)
+
+    plt.xlim(31, 365*4)
+
+    #plt.ylim(-2, 2)
+
+def plot_predictions(results, data, target_id, target_kernel):
+
+​
+
+    dat = data[data['f0'] == target_id]
+
+​
+
+    X = array_to_matrix(dat['f3'])
+
+    Y = normalize(array_to_matrix(dat['f4']))
+
+​
+
+    mean = np.array(results['predictions'][str(target_id)][target_kernel]['mean'])
+
+    var = np.array(results['predictions'][str(target_id)][target_kernel]['var'])
+
+​
+
+    plot(X, Y, mean, var)
+
+Compute Gaussian Processes
+
+def debug_filtering(dataset):
+
+    #dataset = dataset[dataset['f0'] == 59]
+
+    #dataset = dataset[dataset['f0'] > 10]
+
+
+
+    return dataset
+
+def scenario(dataset, scenario):
+
+    return dataset[dataset['f2'] == scenario]
+
+np.unique(data_prior['f2'])
+
+array([b'"FB Friends"', b'"Gym members"', b'"Rain"', b'"Salary"',
+       b'"Sales"', b'"Temperature"'],
+      dtype='|S13')
+
+Prior condition
+
+dataset = debug_filtering(data_prior)
+
+​
+
+results_prior_temperature = compute_gps_for_dataset(scenario(dataset, b'"Temperature"'))
+
+results_prior_rain = compute_gps_for_dataset(scenario(dataset, b'"Rain"'))
+
+​
+
+results_prior_sales = compute_gps_for_dataset(scenario(dataset, b'"Sales"'))
+
+​
+
+results_prior_gym = compute_gps_for_dataset(scenario(dataset, b'"Gym members"'))
+
+​
+
+results_prior_salary = compute_gps_for_dataset(scenario(dataset, b'"Salary"'))
+
+​
+
+results_prior_fb = compute_gps_for_dataset(scenario(dataset, b'"FB Friends"'))
+
+Posterior condition (only evidence)
+
+dataset = debug_filtering(data_posterior)
+
+​
+
+# Only the evidence
+
+dataset = dataset[dataset['f3'] < (365-31+1)]
+
+​
+
+#results_prior_temperature = compute_gps_for_dataset(scenario(dataset, b'"Temperature"'))
+
+​
+
+results_posterior = compute_gps_for_dataset(dataset)
+
+1
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+2
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+3
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+4
+Compute OK
+LMLs OK
+Predictions OK
+5
+Compute OK
+LMLs OK
+Predictions OK
+6
+Compute OK
+LMLs OK
+Predictions OK
+7
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+8
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+9
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+10
+Compute OK
+LMLs OK
+Predictions OK
+11
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+12
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+13
+Adding White Kernel to p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+14
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+15
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+16
+Adding White Kernel to l*p
+Exception caught computing l*p
+Compute OK
+LMLs OK
+Predictions OK
+17
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+18
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+19
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+20
+Adding White Kernel to l*p
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+21
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+22
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+23
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+24
+Adding White Kernel to l+r
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+25
+Compute OK
+LMLs OK
+Predictions OK
+26
+Adding White Kernel to l+p
+Compute OK
+LMLs OK
+Predictions OK
+27
+Adding White Kernel to l+r
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+28
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+29
+Compute OK
+LMLs OK
+Predictions OK
+30
+Adding White Kernel to l+p
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+31
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+32
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+33
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+34
+Adding White Kernel to l*p
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+35
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+36
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+37
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+38
+Compute OK
+LMLs OK
+Predictions OK
+39
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+40
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+41
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+42
+Adding White Kernel to p
+Adding White Kernel to l+p
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+43
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+44
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+45
+Adding White Kernel to p*r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+46
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+47
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+48
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+49
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+50
+Adding White Kernel to p+r
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+51
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+52
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+53
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+54
+Adding White Kernel to l+p
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+55
+Compute OK
+LMLs OK
+Predictions OK
+56
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+57
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Exception caught computing l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+58
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+59
+Compute OK
+LMLs OK
+Predictions OK
+60
+Adding White Kernel to p
+Adding White Kernel to p+r
+Compute OK
+LMLs OK
+Predictions OK
+61
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+62
+Compute OK
+LMLs OK
+Predictions OK
+63
+Adding White Kernel to l+r
+Adding White Kernel to l+p
+Exception caught computing l+p
+Adding White Kernel to l*r+p
+Exception caught computing l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+64
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+65
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+66
+Adding White Kernel to p
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+67
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+68
+Compute OK
+LMLs OK
+Predictions OK
+69
+Adding White Kernel to l+r
+Compute OK
+LMLs OK
+Predictions OK
+70
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+71
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+72
+Adding White Kernel to l+p
+Exception caught computing l+p
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+73
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+74
+Compute OK
+LMLs OK
+Predictions OK
+75
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+76
+Compute OK
+LMLs OK
+Predictions OK
+77
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+78
+Compute OK
+LMLs OK
+Predictions OK
+79
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+80
+Compute OK
+LMLs OK
+Predictions OK
+81
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+82
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+83
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+84
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+85
+Compute OK
+LMLs OK
+Predictions OK
+86
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+87
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+88
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+89
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+90
+Adding White Kernel to l+p
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+91
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+92
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+93
+Adding White Kernel to l+r
+Adding White Kernel to l*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+94
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+95
+
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+96
+Adding White Kernel to p
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+97
+Compute OK
+LMLs OK
+Predictions OK
+98
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+99
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+100
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+101
+Adding White Kernel to l*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+102
+Adding White Kernel to p
+Adding White Kernel to l+p
+Adding White Kernel to l*p
+Adding White Kernel to l+r+p
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+103
+Compute OK
+LMLs OK
+Predictions OK
+104
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+105
+Adding White Kernel to l+r+p
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+106
+Compute OK
+LMLs OK
+Predictions OK
+107
+Adding White Kernel to p
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+108
+Adding White Kernel to p+r
+Exception caught computing p+r
+Adding White Kernel to l*p
+Exception caught computing l*p
+Compute OK
+LMLs OK
+Predictions OK
+109
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+110
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+111
+Compute OK
+LMLs OK
+Predictions OK
+112
+Compute OK
+LMLs OK
+Predictions OK
+113
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+114
+Adding White Kernel to p
+Compute OK
+LMLs OK
+Predictions OK
+115
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+116
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+117
+Adding White Kernel to p
+Adding White Kernel to l+r
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+118
+Adding White Kernel to l+p
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+119
+Adding White Kernel to l*r
+Exception caught computing l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+120
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+121
+Compute OK
+LMLs OK
+Predictions OK
+122
+Compute OK
+LMLs OK
+Predictions OK
+123
+Adding White Kernel to l+r+p
+Exception caught computing l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+124
+Compute OK
+LMLs OK
+Predictions OK
+125
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+126
+Adding White Kernel to p
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+127
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+128
+Adding White Kernel to p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+129
+Adding White Kernel to l+p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+130
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+131
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+132
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+133
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+134
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+135
+Adding White Kernel to l+r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+136
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+137
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+138
+Adding White Kernel to p
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+139
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+140
+Compute OK
+LMLs OK
+Predictions OK
+141
+Compute OK
+LMLs OK
+Predictions OK
+142
+Compute OK
+LMLs OK
+Predictions OK
+143
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+144
+Adding White Kernel to p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+145
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+146
+Adding White Kernel to p+r
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+147
+Adding White Kernel to l+r*p
+Exception caught computing l+r*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+148
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+149
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+150
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+151
+Compute OK
+LMLs OK
+Predictions OK
+152
+Adding White Kernel to p
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+153
+Adding White Kernel to p+r
+Compute OK
+LMLs OK
+Predictions OK
+154
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+155
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+156
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+157
+Compute OK
+LMLs OK
+Predictions OK
+158
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+159
+Adding White Kernel to l+r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+160
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+161
+Compute OK
+LMLs OK
+Predictions OK
+162
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+163
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+164
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+165
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+166
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+167
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+168
+Adding White Kernel to l*p
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+169
+Compute OK
+LMLs OK
+Predictions OK
+170
+Compute OK
+LMLs OK
+Predictions OK
+171
+Adding White Kernel to p
+Adding White Kernel to p+r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+172
+Compute OK
+LMLs OK
+Predictions OK
+173
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+174
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+175
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+176
+Compute OK
+LMLs OK
+Predictions OK
+177
+Adding White Kernel to l*p
+Adding White Kernel to l+r*p
+Exception caught computing l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+178
+Compute OK
+LMLs OK
+Predictions OK
+179
+Adding White Kernel to l*r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+180
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+181
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+182
+Adding White Kernel to l+p
+Adding White Kernel to p*r
+
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+Exception caught in lml
+LMLs OK
+Exception caught in predict
+Predictions OK
+183
+Adding White Kernel to l+r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+184
+Adding White Kernel to p*r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+185
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+186
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+187
+Adding White Kernel to p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+188
+Compute OK
+LMLs OK
+Predictions OK
+189
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+190
+Compute OK
+LMLs OK
+Predictions OK
+191
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+192
+Adding White Kernel to p+r
+Compute OK
+LMLs OK
+Predictions OK
+193
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+194
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+195
+Adding White Kernel to l+p
+Compute OK
+LMLs OK
+Predictions OK
+196
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+197
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+198
+Adding White Kernel to p
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+199
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+200
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+201
+Adding White Kernel to l+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+202
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+203
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+204
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+205
+Adding White Kernel to l+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+206
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+207
+Adding White Kernel to l+r
+Adding White Kernel to l+p
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+208
+Adding White Kernel to l+p
+Compute OK
+LMLs OK
+Predictions OK
+209
+Compute OK
+LMLs OK
+Predictions OK
+210
+Adding White Kernel to l+p
+Exception caught computing l+p
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+211
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Exception caught computing l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+212
+Adding White Kernel to l+r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+213
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+214
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+215
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+216
+Adding White Kernel to l+p
+Adding White Kernel to p+r
+Adding White Kernel to l*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+217
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+218
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+219
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+220
+Compute OK
+LMLs OK
+Predictions OK
+221
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+222
+Adding White Kernel to l*p
+Exception caught computing l*p
+Compute OK
+LMLs OK
+Predictions OK
+223
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+224
+Compute OK
+LMLs OK
+Predictions OK
+225
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+226
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+227
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+228
+Adding White Kernel to p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+229
+Compute OK
+LMLs OK
+Predictions OK
+230
+Compute OK
+LMLs OK
+Predictions OK
+231
+Adding White Kernel to l*p
+Exception caught computing l*p
+Compute OK
+LMLs OK
+Predictions OK
+232
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+233
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+234
+Adding White Kernel to l+p
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+235
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+236
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+237
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+238
+Compute OK
+LMLs OK
+Predictions OK
+239
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+240
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+241
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+242
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+243
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+244
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+245
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+246
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+247
+Compute OK
+LMLs OK
+Predictions OK
+248
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+249
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+250
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+251
+Adding White Kernel to l+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+252
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+253
+Adding White Kernel to p
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+254
+Compute OK
+LMLs OK
+Predictions OK
+255
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+256
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+257
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+258
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+259
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+260
+Compute OK
+LMLs OK
+Predictions OK
+261
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+262
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+263
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+264
+Adding White Kernel to l+p
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+265
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+266
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+267
+Adding White Kernel to l+r
+Compute OK
+
+LMLs OK
+Predictions OK
+268
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+269
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+270
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+271
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+272
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+273
+Adding White Kernel to l+p
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+274
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+275
+Adding White Kernel to l*r
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+276
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+277
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+278
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+279
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+280
+Compute OK
+LMLs OK
+Predictions OK
+281
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+282
+Adding White Kernel to l+p
+Exception caught computing l+p
+Adding White Kernel to l*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+283
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+284
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+285
+Adding White Kernel to p
+Adding White Kernel to l*r
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+286
+Compute OK
+LMLs OK
+Predictions OK
+287
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+288
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+289
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+290
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+291
+Adding White Kernel to l+p
+Adding White Kernel to l+r+p
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+292
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+293
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+294
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to p*r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+295
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+296
+Adding White Kernel to l+p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+297
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+298
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+299
+Compute OK
+LMLs OK
+Predictions OK
+300
+Adding White Kernel to l*p
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+301
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+302
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+303
+Adding White Kernel to l+r
+Adding White Kernel to l+p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+304
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+305
+Adding White Kernel to l+p
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+306
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+307
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+308
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+309
+Adding White Kernel to l+r
+Adding White Kernel to p+r
+Adding White Kernel to l*r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+310
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+311
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+312
+Adding White Kernel to l+r+p
+Exception caught computing l+r+p
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+313
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+314
+Adding White Kernel to l*p
+Exception caught computing l*p
+Compute OK
+LMLs OK
+Predictions OK
+315
+Adding White Kernel to l+r
+Adding White Kernel to l+p
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+316
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+317
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+318
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+319
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+320
+Compute OK
+LMLs OK
+Predictions OK
+321
+Adding White Kernel to l+r
+Adding White Kernel to p*r
+Adding White Kernel to l+r+p
+Exception caught computing l+r+p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+322
+Adding White Kernel to l+p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+323
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+324
+Adding White Kernel to p+r
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+325
+Compute OK
+LMLs OK
+Predictions OK
+326
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+327
+Adding White Kernel to p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+328
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+329
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+330
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+331
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+332
+Compute OK
+LMLs OK
+Predictions OK
+333
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+334
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+335
+Compute OK
+LMLs OK
+Predictions OK
+336
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+337
+Adding White Kernel to p+r
+Compute OK
+LMLs OK
+Predictions OK
+338
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+339
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+340
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+341
+Compute OK
+LMLs OK
+Predictions OK
+342
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+343
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+344
+Compute OK
+LMLs OK
+Predictions OK
+345
+Adding White Kernel to p*r
+Exception caught computing p*r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+346
+Adding White Kernel to p
+Adding White Kernel to l*r
+Exception caught computing l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+347
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+348
+Compute OK
+LMLs OK
+Predictions OK
+349
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+350
+Adding White Kernel to p
+Adding White Kernel to p+r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+351
+
+Adding White Kernel to p*r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+352
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+353
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+354
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+355
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+356
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+357
+Adding White Kernel to l+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+358
+Compute OK
+LMLs OK
+Predictions OK
+359
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+360
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+361
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+362
+Compute OK
+LMLs OK
+Predictions OK
+363
+Adding White Kernel to l+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+364
+Adding White Kernel to p
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+365
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+366
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+367
+Compute OK
+LMLs OK
+Predictions OK
+368
+Adding White Kernel to p+r
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+369
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+370
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+371
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+372
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+373
+Compute OK
+LMLs OK
+Predictions OK
+374
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+375
+Adding White Kernel to l*r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+376
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+377
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+378
+Adding White Kernel to l+p
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+379
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+380
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+381
+Adding White Kernel to p+r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+382
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+383
+Compute OK
+LMLs OK
+Predictions OK
+384
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+385
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+386
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r+p
+Exception caught computing l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+387
+Compute OK
+LMLs OK
+Predictions OK
+388
+Compute OK
+LMLs OK
+Predictions OK
+389
+Compute OK
+LMLs OK
+Predictions OK
+390
+Adding White Kernel to p
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+391
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+392
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+393
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+394
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+395
+Compute OK
+LMLs OK
+Predictions OK
+396
+Adding White Kernel to l+p
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+397
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+398
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+399
+Adding White Kernel to l+r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+400
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+401
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+402
+Adding White Kernel to p+r
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+403
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+404
+Adding White Kernel to p
+Adding White Kernel to l*r
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+405
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+406
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+407
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+408
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+409
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+410
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+411
+Adding White Kernel to p
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+412
+Compute OK
+LMLs OK
+Predictions OK
+413
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+414
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+415
+Compute OK
+LMLs OK
+Predictions OK
+416
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+417
+Adding White Kernel to l+p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+418
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+419
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+420
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+421
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+422
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+423
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+424
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+425
+Adding White Kernel to p+r
+Compute OK
+LMLs OK
+Predictions OK
+426
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+427
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+428
+Adding White Kernel to p
+Adding White Kernel to p+r
+Compute OK
+LMLs OK
+Predictions OK
+429
+Adding White Kernel to l+p
+Exception caught computing l+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+430
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+431
+Compute OK
+LMLs OK
+Predictions OK
+432
+Adding White Kernel to p
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+433
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+434
+Adding White Kernel to l+r+p
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+435
+Adding White Kernel to l+r+p
+Exception caught computing l+r+p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+436
+Compute OK
+LMLs OK
+Predictions OK
+437
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+438
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+
+Compute OK
+LMLs OK
+Predictions OK
+439
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+440
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+441
+Adding White Kernel to l+r
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+442
+Compute OK
+LMLs OK
+Predictions OK
+443
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+444
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+445
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+446
+Adding White Kernel to p
+Compute OK
+LMLs OK
+Predictions OK
+447
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+448
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+449
+Adding White Kernel to l*r
+Exception caught computing l*r
+Compute OK
+LMLs OK
+Predictions OK
+450
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+451
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+452
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+453
+Adding White Kernel to l+r
+Adding White Kernel to l+r+p
+Exception caught computing l+r+p
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+454
+Compute OK
+LMLs OK
+Predictions OK
+455
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+456
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+457
+Compute OK
+LMLs OK
+Predictions OK
+458
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+459
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+460
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+461
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+462
+Adding White Kernel to p+r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+463
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+464
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+465
+Adding White Kernel to l+p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+466
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+467
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+468
+Adding White Kernel to l+p
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+469
+Adding White Kernel to p
+Adding White Kernel to l*r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+470
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+471
+Adding White Kernel to l+r
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Exception caught computing l*r+p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+472
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+473
+Adding White Kernel to p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+474
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+475
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+476
+Adding White Kernel to p+r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+477
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+478
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+479
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+480
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+481
+Compute OK
+LMLs OK
+Predictions OK
+482
+Compute OK
+LMLs OK
+Predictions OK
+483
+Adding White Kernel to p
+Exception caught computing p
+Adding White Kernel to l+r
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+Exception caught in lml
+LMLs OK
+Exception caught in predict
+Predictions OK
+484
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+485
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+486
+Compute OK
+LMLs OK
+Predictions OK
+487
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+488
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+489
+Adding White Kernel to p
+Exception caught computing p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+490
+Compute OK
+LMLs OK
+Predictions OK
+491
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+492
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+493
+Adding White Kernel to p
+Adding White Kernel to p+r
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+494
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+495
+Compute OK
+LMLs OK
+Predictions OK
+496
+Adding White Kernel to l*p
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+497
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+498
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+499
+Compute OK
+LMLs OK
+Predictions OK
+500
+Adding White Kernel to p
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+501
+Adding White Kernel to l+r
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+502
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+503
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+504
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+505
+Compute OK
+LMLs OK
+Predictions OK
+506
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+507
+Adding White Kernel to l+r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+508
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+509
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+510
+Adding White Kernel to p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+511
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+512
+Compute OK
+LMLs OK
+Predictions OK
+513
+Adding White Kernel to p
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+514
+Compute OK
+LMLs OK
+Predictions OK
+515
+Adding White Kernel to l*p
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+516
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+517
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+518
+Adding White Kernel to p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+519
+Compute OK
+LMLs OK
+Predictions OK
+520
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+521
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+522
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+523
+Adding White Kernel to p
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+524
+Compute OK
+
+LMLs OK
+Predictions OK
+525
+Adding White Kernel to l+r
+Compute OK
+LMLs OK
+Predictions OK
+526
+Adding White Kernel to l+p
+Compute OK
+LMLs OK
+Predictions OK
+527
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+528
+Adding White Kernel to p+r
+Compute OK
+LMLs OK
+Predictions OK
+529
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+530
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+531
+Adding White Kernel to l+r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+532
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+533
+Adding White Kernel to l*r*p
+Compute OK
+Exception caught in lml
+LMLs OK
+Exception caught in predict
+Predictions OK
+534
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+535
+Adding White Kernel to p
+Adding White Kernel to p+r
+Compute OK
+LMLs OK
+Predictions OK
+536
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+537
+Compute OK
+LMLs OK
+Predictions OK
+538
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+539
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+540
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+541
+Adding White Kernel to p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+542
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+543
+Adding White Kernel to p
+Exception caught computing p
+Compute OK
+LMLs OK
+Predictions OK
+544
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+545
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+546
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+547
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+548
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+549
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+550
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+551
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+552
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+553
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+554
+Adding White Kernel to p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+555
+Adding White Kernel to l*r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+556
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+557
+Adding White Kernel to l*p
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+558
+Adding White Kernel to l*p
+Exception caught computing l*p
+Compute OK
+LMLs OK
+Predictions OK
+559
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+560
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+561
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+562
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+563
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+564
+Adding White Kernel to l*r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+565
+Adding White Kernel to p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+566
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+567
+Adding White Kernel to l+r
+Adding White Kernel to p*r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+568
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+569
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+570
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+571
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+572
+Compute OK
+LMLs OK
+Predictions OK
+573
+Adding White Kernel to p
+Adding White Kernel to l+r
+Adding White Kernel to l*r
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+574
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+575
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+576
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+577
+Compute OK
+LMLs OK
+Predictions OK
+578
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+579
+Compute OK
+LMLs OK
+Predictions OK
+580
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+581
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+582
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+583
+Compute OK
+LMLs OK
+Predictions OK
+584
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+585
+Adding White Kernel to l*r
+Adding White Kernel to l*r+p
+Exception caught computing l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+586
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+587
+Adding White Kernel to p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+588
+Adding White Kernel to l*p
+Exception caught computing l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+589
+Compute OK
+LMLs OK
+Predictions OK
+590
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+591
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+592
+Adding White Kernel to p+r
+Compute OK
+LMLs OK
+Predictions OK
+593
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+594
+Adding White Kernel to p+r
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+595
+Compute OK
+LMLs OK
+Predictions OK
+596
+Compute OK
+LMLs OK
+Predictions OK
+597
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+598
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+599
+Compute OK
+LMLs OK
+Predictions OK
+600
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+601
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Compute OK
+Exception caught in lml
+LMLs OK
+Exception caught in predict
+Predictions OK
+602
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+603
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+604
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+605
+Adding White Kernel to p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+606
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+607
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+608
+Adding White Kernel to p+r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+609
+Adding White Kernel to l+r
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+610
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+611
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+612
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+
+Compute OK
+LMLs OK
+Predictions OK
+613
+Adding White Kernel to l*r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+614
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+615
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+616
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+617
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+618
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+619
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+620
+Adding White Kernel to l+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+621
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+622
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+623
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+624
+Adding White Kernel to p
+Exception caught computing p
+Adding White Kernel to l*p
+Adding White Kernel to l+r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+625
+Compute OK
+LMLs OK
+Predictions OK
+626
+Compute OK
+LMLs OK
+Predictions OK
+627
+Compute OK
+LMLs OK
+Predictions OK
+628
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+629
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+630
+Adding White Kernel to l+p
+Exception caught computing l+p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+631
+Compute OK
+LMLs OK
+Predictions OK
+632
+Compute OK
+LMLs OK
+Predictions OK
+633
+Compute OK
+LMLs OK
+Predictions OK
+634
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+635
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+636
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+637
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+638
+Compute OK
+LMLs OK
+Predictions OK
+639
+Adding White Kernel to p+r
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+640
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+641
+Adding White Kernel to l+r+p
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+642
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+643
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+644
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+645
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+646
+Compute OK
+LMLs OK
+Predictions OK
+647
+Compute OK
+LMLs OK
+Predictions OK
+648
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+649
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+650
+Compute OK
+LMLs OK
+Predictions OK
+651
+Adding White Kernel to l*r
+Adding White Kernel to l+r+p
+Compute OK
+LMLs OK
+Predictions OK
+652
+Adding White Kernel to l*r
+Adding White Kernel to l+r+p
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+653
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+654
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+655
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+656
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+657
+Adding White Kernel to l+r
+Adding White Kernel to l*r
+Compute OK
+LMLs OK
+Predictions OK
+658
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+659
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+660
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+661
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+662
+Compute OK
+LMLs OK
+Predictions OK
+663
+Adding White Kernel to l+r
+Adding White Kernel to l+p
+Compute OK
+LMLs OK
+Predictions OK
+664
+Adding White Kernel to p
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+665
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+666
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+667
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+668
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+669
+Adding White Kernel to l+r
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+670
+Compute OK
+LMLs OK
+Predictions OK
+671
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+672
+Adding White Kernel to l*p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+673
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+674
+Adding White Kernel to p+r
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+675
+Adding White Kernel to p
+Adding White Kernel to l*r
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+676
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+677
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+678
+Adding White Kernel to l+r*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+679
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+680
+Compute OK
+LMLs OK
+Predictions OK
+681
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+682
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+683
+Compute OK
+LMLs OK
+Predictions OK
+684
+Adding White Kernel to l+p
+Compute OK
+LMLs OK
+Predictions OK
+685
+Adding White Kernel to l+r*p
+Compute OK
+LMLs OK
+Predictions OK
+686
+Adding White Kernel to l*r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+687
+Adding White Kernel to p
+Adding White Kernel to l+r+p
+Exception caught computing l+r+p
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+688
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+689
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+690
+Compute OK
+LMLs OK
+Predictions OK
+691
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+692
+Compute OK
+LMLs OK
+Predictions OK
+693
+Adding White Kernel to p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+694
+Adding White Kernel to l*r
+Adding White Kernel to l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+695
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+696
+Compute OK
+LMLs OK
+Predictions OK
+697
+Compute OK
+LMLs OK
+Predictions OK
+698
+Compute OK
+LMLs OK
+Predictions OK
+699
+Compute OK
+LMLs OK
+Predictions OK
+700
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+701
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+702
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+703
+Adding White Kernel to p*r
+Compute OK
+LMLs OK
+Predictions OK
+704
+Compute OK
+LMLs OK
+Predictions OK
+705
+Adding White Kernel to l+r
+Adding White Kernel to l*p+r
+Exception caught computing l*p+r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+706
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+707
+Adding White Kernel to l*r
+Adding White Kernel to l*r*p
+Exception caught computing l*r*p
+Compute OK
+
+LMLs OK
+Predictions OK
+708
+Adding White Kernel to l*r
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*p+r
+Compute OK
+LMLs OK
+Predictions OK
+709
+Adding White Kernel to l*p
+Compute OK
+LMLs OK
+Predictions OK
+710
+Adding White Kernel to p
+Adding White Kernel to p+r
+Adding White Kernel to l*r+p
+Compute OK
+LMLs OK
+Predictions OK
+711
+Adding White Kernel to l+r
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+712
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+713
+Adding White Kernel to l*p
+Adding White Kernel to p*r
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+714
+Adding White Kernel to l+p
+Adding White Kernel to p+r
+Adding White Kernel to l*p
+Adding White Kernel to l*r+p
+Adding White Kernel to l*r*p
+Compute OK
+LMLs OK
+Predictions OK
+Minutes: 566
+
+save_results(results_posterior, 'results_posterior')
+
+Save
+
+save_results(results_prior_temperature, 'results_prior_temperature')
+
+save_results(results_prior, 'results_prior')
+
+save_results(results_posterior, 'results_posterior')
+
+Plots
+
+plot_predictions(results_posterior, data_posterior, 8, 'l+p')
+
+plot_predictions(results_prior, data_prior, 9, 'l+r*p')
+
+DEBUG
+
+with open('output/results_posterior.json', 'r') as fp:
+
+    data = json.load(fp)
+
+data['maxs']
+
+{'1': [['p'], 168.04838248672056],
+ '10': [['l+r*p'], 174.24778860030202],
+ '100': [['p*r'], 218.6973231316841],
+ '101': [['p*r'], 204.45021732700485],
+ '102': [['l+r'], 1.273845832988524],
+ '103': [['p*r'], 174.84184873078766],
+ '104': [['p*r'], 137.5288650849462],
+ '105': [['l+r+p'], -319.38369417231405],
+ '106': [['l+r*p'], 170.68397443401443],
+ '107': [['l+r*p'], 165.9740278460229],
+ '108': [['l+r'], -37.19348044866402],
+ '109': [['l+r*p'], 178.65094840487998],
+ '11': [['p*r'], 165.83175717408275],
+ '110': [['l+r+p'], 123.61332821220894],
+ '111': [['p+r'], -101.16323571629368],
+ '112': [['p*r'], 170.5147163834914],
+ '113': [['p*r'], 176.65288927756995],
+ '114': [['p+r'], -7.437549622428939],
+ '115': [['l+r*p'], 174.57870630701967],
+ '116': [['l+r*p'], 137.82289994439722],
+ '117': [['p+r'], -152.33715558191957],
+ '118': [['l+r+p'], 158.34713658362446],
+ '119': [['l+r*p'], 174.2553623911407],
+ '12': [['p+r'], -15.887890569110386],
+ '120': [['l+r'], -67.10168145813147],
+ '121': [['p*r'], 171.50463079075044],
+ '122': [['l+r*p'], 124.51702994112068],
+ '123': [['p+r'], -98.16573316951741],
+ '124': [['l+r*p'], 110.60846479810117],
+ '125': [['l+r*p'], 167.90422282594184],
+ '126': [['l+r+p'], -28.23148437622642],
+ '127': [['r'], 133.98779938705707],
+ '128': [['l+r*p'], 142.24485337768434],
+ '129': [['l+r+p'], -194.00802564042596],
+ '13': [['l+r*p'], 185.40406488865239],
+ '130': [['l+r*p'], 161.51664441705384],
+ '131': [['l+r*p'], 167.66767411427833],
+ '132': [['p+r'], 0.858497835862579],
+ '133': [['p+r'], 247.80920902511508],
+ '134': [['l+r+p'], 109.14763093304079],
+ '135': [['l*r*p'], -162.22731035850586],
+ '136': [['p*r'], 207.67762410925417],
+ '137': [['l+r*p'], 182.1494341950812],
+ '138': [['l+p'], 14.95436413347877],
+ '139': [['p*r'], 169.83524068553118],
+ '14': [['l+r*p'], 158.80104566895204],
+ '140': [['l*r+p'], 136.01843058048877],
+ '141': [['l+r+p'], -131.362185538089],
+ '142': [['p*r'], 171.8839158480445],
+ '143': [['l+r+p'], 170.61570402434705],
+ '144': [['l+r+p'], -16.483668793477733],
+ '145': [['l+r*p'], 230.8979169732391],
+ '146': [['l+r*p'], 128.11465273842595],
+ '147': [['l+r'], -78.78287905369942],
+ '148': [['l+r'], 187.3480924548865],
+ '149': [['l+r*p'], 202.0963039118935],
+ '15': [['p+r'], -66.59193588678521],
+ '150': [['p+r'], 22.337749349077228],
+ '151': [['l+r+p'], 200.1593334127585],
+ '152': [['p*r'], 151.04977868896987],
+ '153': [['l+r*p'], -178.26008267363474],
+ '154': [['l+r*p'], 203.3242610541386],
+ '155': [['l+r+p'], 218.3645452966651],
+ '156': [['l+r+p'], 34.23606151687222],
+ '157': [['p*r'], 156.92382830608582],
+ '158': [['p*r'], 150.06254011539775],
+ '159': [['p+r'], -150.25907126067057],
+ '16': [['l+r*p'], 181.59552155856363],
+ '160': [['l+r*p'], 206.6579739324006],
+ '161': [['p*r'], 203.1843096899256],
+ '162': [['p+r'], 44.62897626120662],
+ '163': [['l+r*p'], 176.87952888599864],
+ '164': [['p*r'], 119.76295511400276],
+ '165': [['l+r+p'], -127.67845212808264],
+ '166': [['p+r'], 173.1627239496497],
+ '167': [['p*r'], 175.14254108778704],
+ '168': [['l+r+p'], 1.2852288384811885],
+ '169': [['p*r'], 182.844071376014],
+ '17': [['l+r+p'], 229.46982513066496],
+ '170': [['l+r+p'], 138.0786026623603],
+ '171': [['r'], -140.76089720681827],
+ '172': [['p+r'], 184.44951392790753],
+ '173': [['l+r*p'], 175.81646963055286],
+ '174': [['p+r'], 12.567325607301939],
+ '175': [['p*r'], 166.69809867741697],
+ '176': [['l+r'], 114.20402659020996],
+ '177': [['l+r+p'], -109.42641051910644],
+ '178': [['p+r'], 178.17357539247718],
+ '179': [['l+r*p'], 170.14738933313305],
+ '18': [['l+r+p'], 56.1862715155224],
+ '180': [['l+p'], -25.131163838211243],
+ '181': [['l+r+p'], 173.85771464784276],
+ '182': [['l+r*p'], 194.0867309416942],
+ '183': [['l+r'], -89.4174607379386],
+ '184': [['p'], 189.58929197147756],
+ '185': [['p*r'], 220.56565716302813],
+ '186': [['p+r'], 18.26894383500412],
+ '187': [['l+r'], 146.68782112238702],
+ '188': [['l+r*p'], 114.81746172658215],
+ '189': [['p+r'], -139.66718407904784],
+ '19': [['l+r*p'], 174.21305615228943],
+ '190': [['l+r*p'], 170.18030755669224],
+ '191': [['l+r*p'], 176.03025375623403],
+ '192': [['l+r+p'], -2.553932202488866],
+ '193': [['l+r'], 200.29689183099595],
+ '194': [['l+r+p'], 208.06538635140163],
+ '195': [['l+p'], -172.42132812149168],
+ '196': [['p*r'], 159.34461543633884],
+ '197': [['l+r*p'], 173.7090604954548],
+ '198': [['l+r+p'], 21.391584340196356],
+ '199': [['p*r'], 178.0890462799969],
+ '2': [['l+r+p'], 116.50607539865271],
+ '20': [['p*r'], 128.36399356827053],
+ '200': [['p+r'], 145.74317949451762],
+ '201': [['l+r+p'], -150.10565778520055],
+ '202': [['l*r+p'], 189.10544735886668],
+ '203': [['l+r'], 145.56218090478856],
+ '204': [['l+r+p'], -1.9050788815249824],
+ '205': [['p+r'], 177.01661540164184],
+ '206': [['p*r'], 128.3104751084972],
+ '207': [['l+r'], -133.77727549591197],
+ '208': [['l+r*p'], 171.5881514115237],
+ '209': [['l+r+p'], 188.01997908358055],
+ '21': [['l+r'], -95.98038037735256],
+ '210': [['p+r'], 10.875463322718456],
+ '211': [['p+r'], 209.04226792749157],
+ '212': [['l+r*p'], 169.070846779543],
+ '213': [['l+r+p'], -51.21689358467803],
+ '214': [['l+r*p'], 203.3833204486217],
+ '215': [['l+r+p'], 226.91903806799863],
+ '216': [['l+r'], 3.008797118066642],
+ '217': [['l+r*p'], 183.0819205230158],
+ '218': [['p*r'], 135.1078314443308],
+ '219': [['l+r+p'], -115.53540187027252],
+ '22': [['p*r'], 205.2915940063836],
+ '220': [['p*r'], 115.42065360147991],
+ '221': [['l+r+p'], 174.60747559978628],
+ '222': [['p+r'], 25.37543858913603],
+ '223': [['l+r*p'], 169.98791102801897],
+ '224': [['l+r*p'], 137.39343886005224],
+ '225': [['l+r+p'], -164.5438655914105],
+ '226': [['p*r'], 168.5284933968959],
+ '227': [['l+r*p'], 180.59444666585824],
+ '228': [['p+r'], -6.908573120575326],
+ '229': [['l+r*p'], 178.73503528615902],
+ '23': [['l+r*p'], 219.22747594654402],
+ '230': [['l+r*p'], 115.69440176821227],
+ '231': [['l+r+p'], -132.8737126531845],
+ '232': [['l+r*p'], 177.38984978632269],
+ '233': [['l+r*p'], 178.95521075358914],
+ '234': [['l+r+p'], -32.457271922287035],
+ '235': [['l+r*p'], 163.73579884179924],
+ '236': [['p*r'], 131.16835846676244],
+ '237': [['l+r+p'], -131.1633719909925],
+ '238': [['p*r'], 175.17705829790327],
+ '239': [['l+r*p'], 173.32066376084583],
+ '24': [['l*r+p'], -22.15219383151397],
+ '240': [['l+r+p'], -40.15042926791375],
+ '241': [['l+r*p'], 190.2527726485118],
+ '242': [['l+r*p'], 168.48817105575546],
+ '243': [['l+r'], -177.03669076099598],
+ '244': [['l+r*p'], 198.92793035516067],
+ '245': [['l*r+p'], 192.09912510209324],
+ '246': [['l+r+p'], 51.22999453462926],
+ '247': [['p*r'], 169.87239894398533],
+ '248': [['p+r'], 137.5988139123757],
+ '249': [['p*r'], -107.01406161849005],
+ '25': [['p*r'], 178.38362673983343],
+ '250': [['l*r+p'], 178.73857007267054],
+ '251': [['p+r'], 188.03441330935112],
+ '252': [['p+r'], -2.7112154216974638],
+ '253': [['l+r*p'], 195.3132863746876],
+ '254': [['l+r*p'], 195.23638089943123],
+ '255': [['p+r'], -147.60267995556484],
+ '256': [['p'], 197.3455920302036],
+ '257': [['l+r+p'], 238.76887163611408],
+ '258': [['p+r'], 33.65910652725846],
+ '259': [['l+r*p'], 225.49356651484732],
+ '26': [['l+r+p'], 134.01890371122627],
+ '260': [['p*r'], 172.7173820745431],
+ '261': [['p+r'], -140.6890247360417],
+ '262': [['l+r+p'], 224.78096150088166],
+ '263': [['l+r+p'], 224.28047570284886],
+ '264': [['l+r+p'], 18.752452187570928],
+ '265': [['p+r'], 164.4655510991684],
+ '266': [['l+r*p'], 195.49641874557128],
+ '267': [['l+r'], -174.0114669289391],
+ '268': [['l+r*p'], 209.8048367573216],
+ '269': [['l+r*p'], 196.5403373433825],
+ '27': [['l+r+p'], -119.42727773973358],
+ '270': [['l+r+p'], 28.077868607346932],
+ '271': [['p*r'], 175.8021351598196],
+ '272': [['l+r*p'], 197.21551056396456],
+ '273': [['p*r'], -74.41349012212402],
+ '274': [['p*r'], 182.81189908886134],
+ '275': [['l+r'], 132.10749785013726],
+ '276': [['l+r+p'], 20.385098403378834],
+ '277': [['p*r'], 180.2100549023465],
+ '278': [['p*r'], 123.64112878533226],
+ '279': [['p+r'], -119.5326148588295],
+ '28': [['l+r+p'], 201.57907600448567],
+ '280': [['p*r'], 152.9534885612091],
+ '281': [['l+r+p'], 168.1917660332095],
+ '282': [['l+r'], -25.96394162358354],
+ '283': [['l+r*p'], 156.99411870162652],
+ '284': [['l+r*p'], 120.05682172839137],
+ '285': [['p+r'], -155.68494868000442],
+ '286': [['p*r'], 176.4535727623432],
+ '287': [['p*r'], 170.32361845829456],
+ '288': [['l+r'], -71.76333653094349],
+ '289': [['l+r*p'], 164.9634537274962],
+ '29': [['p+r'], 177.63619545218643],
+ '290': [['l+r*p'], 191.38071579244132],
+ '291': [['l+r*p'], -144.25916397196593],
+ '292': [['l+r+p'], 213.6517393210908],
+ '293': [['l+r+p'], 246.3450298664937],
+ '294': [['l+r'], 10.870642121719726],
+ '295': [['p*r'], 184.89377054810683],
+ '296': [['p*r'], 122.58846573801765],
+ '297': [['l+r'], -139.84952482600195],
+ '298': [['p*r'], 160.82443220359266],
+ '299': [['p*r'], 174.46022889227766],
+ '3': [['p*r'], -152.11870143243746],
+ '30': [['l+r+p'], -27.552051487638188],
+ '300': [['p+r'], -23.336042267038387],
+ '301': [['p*r'], 141.19459627387403],
+ '302': [['l+r+p'], 131.31697659725168],
+ '303': [['p*r'], -107.6858866467258],
+ '304': [['l+r*p'], 171.6281205078299],
+ '305': [['l+r+p'], 145.14873742730143],
+ '306': [['l+r+p'], -20.158105577688055],
+ '307': [['l+r+p'], 164.05643506121422],
+ '308': [['l+r*p'], 105.48363067124846],
+ '309': [['p+r'], -144.2453432958003],
+ '31': [['p*r'], 220.5465243334961],
+ '310': [['p*r'], 168.5500307858945],
+ '311': [['p*r'], 154.71876434790983],
+ '312': [['p+r'], 1.1282424983547301],
+ '313': [['l+r*p'], 148.81683336633796],
+ '314': [['l+r*p'], 136.38975346522395],
+ '315': [['l+r+p'], -175.8395296135563],
+ '316': [['l+r*p'], 112.05626649159018],
+ '317': [['p*r'], 153.1240538475237],
+ '318': [['l+r+p'], -36.040742686436445],
+ '319': [['l+r*p'], 173.15556032606315],
+ '32': [['l+r*p'], 121.75907529679428],
+ '320': [['l+r*p'], 108.29516397877947],
+ '321': [['p*r'], -101.73726138229156],
+ '322': [['l+r*p'], 159.59787894844735],
+ '323': [['p*r'], 168.13700746355389],
+ '324': [['l+r+p'], -22.996821095707283],
+ '325': [['p+r'], 199.59604974940711],
+ '326': [['l*r+p'], 206.4381833309799],
+ '327': [['l*r+p'], -151.0604639838823],
+ '328': [['l+r+p'], 216.6207321715143],
+ '329': [['p*r'], 195.27346533692545],
+ '33': [['l+r*p'], -145.05297692151007],
+ '330': [['p+r'], 34.68494201336002],
+ '331': [['p+r'], 159.1883478690792],
+ '332': [['p*r'], 141.42540463402355],
+ '333': [['p'], -128.85948189703134],
+ '334': [['l+r+p'], 173.48316325608297],
+ '335': [['p*r'], 174.5816086396588],
+ '336': [['p+r'], -5.571016160098161],
+ '337': [['l+r*p'], 169.0271678333165],
+ '338': [['p*r'], 123.53057963062193],
+ '339': [['l*r'], -159.63773517919066],
+ '34': [['p*r'], 148.7488303282827],
+ '340': [['l+r*p'], 219.05785625455957],
+ '341': [['l+r+p'], 238.1919297884621],
+ '342': [['p+r'], 24.520397824600543],
+ '343': [['p*r'], 182.85908800392173],
+ '344': [['p*r'], 138.11310286266556],
+ '345': [['p+r'], -128.91612462039518],
+ '346': [['l+r+p'], 178.72058820985023],
+ '347': [['l+r*p'], 171.76574360855548],
+ '348': [['l+r+p'], -9.933204364571036],
+ '349': [['p*r'], 189.75959469582727],
+ '35': [['l+r*p'], 206.8791759635141],
+ '350': [['p*r'], 146.32215244604117],
+ '351': [['p*r'], -144.32006367285473],
+ '352': [['l+r*p'], 182.5158825392979],
+ '353': [['p*r'], 219.8724339880267],
+ '354': [['l+r+p'], 30.492036050278855],
+ '355': [['l+r+p'], 189.01142347075665],
+ '356': [['l+r+p'], 137.35444273469102],
+ '357': [['p+r'], -121.44658601558538],
+ '358': [['p*r'], 179.00473307292594],
+ '359': [['p*r'], 179.077774512655],
+ '36': [['l+r+p'], 16.561527608440606],
+ '360': [['p+r'], -9.364641694578953],
+ '361': [['p*r'], 223.73529754328433],
+ '362': [['l+r*p'], 116.46431178744132],
+ '363': [['p+r'], -150.66868444917213],
+ '364': [['l+r*p'], 213.69211419824356],
+ '365': [['p*r'], 206.36927501453],
+ '366': [['l+r+p'], 50.625119746842785],
+ '367': [['p*r'], 172.73255228530036],
+ '368': [['p*r'], 142.31724794778043],
+ '369': [['l+r'], -83.70409680527894],
+ '37': [['l+r*p'], 184.54805338983942],
+ '370': [['l+r+p'], 171.44036546201394],
+ '371': [['l+r*p'], 210.8655163651211],
+ '372': [['l+r'], -2.73551749656826],
+ '373': [['l+r*p'], 179.4553771059106],
+ '374': [['l+r+p'], 140.06075293066544],
+ '375': [['r'], -134.83481619335117],
+ '376': [['p+r'], 168.7248130130816],
+ '377': [['p+r'], 183.5951216877668],
+ '378': [['l+r+p'], -16.223021946051897],
+ '379': [['l+r*p'], 225.52891640773393],
+ '38': [['p*r'], 124.8173822967272],
+ '380': [['p+r'], 185.85598869796019],
+ '381': [['p+r'], -146.96534875349028],
+ '382': [['l+r'], 183.9846840411002],
+ '383': [['l+r'], 186.66755377360215],
+ '384': [['l+r+p'], 15.582333499264848],
+ '385': [['l+r*p'], 178.24863768957468],
+ '386': [['l+r+p'], 131.14804950937184],
+ '387': [['p'], -124.7291438585485],
+ '388': [['p*r'], 168.91653757145366],
+ '389': [['p+r'], 185.1964713800939],
+ '39': [['l+r+p'], -116.25000665033389],
+ '390': [['l+r'], -30.95660652364669],
+ '391': [['p*r'], 184.17265429361203],
+ '392': [['l+r*p'], 196.6933705836202],
+ '393': [['l+r+p'], -154.38544659632836],
+ '394': [['l+r'], 183.2977771544306],
+ '395': [['l+r*p'], 142.11865991723883],
+ '396': [['l+r+p'], 8.096906181945485],
+ '397': [['p*r'], 184.26129243504184],
+ '398': [['p*r'], 173.57261603544393],
+ '399': [['l+r'], -92.5231184662383],
+ '4': [['p*r'], 164.1793968765179],
+ '40': [['l+r*p'], 175.986780064195],
+ '400': [['l+r*p'], 198.7582583579472],
+ '401': [['p*r'], 214.02314728863652],
+ '402': [['l+r+p'], 33.363338064118054],
+ '403': [['l+r*p'], 158.1020729266594],
+ '404': [['p*r'], 112.91421573382681],
+ '405': [['l+r'], -80.57502908886082],
+ '406': [['l+r*p'], 203.2837039839915],
+ '407': [['p*r'], 176.23759039369975],
+ '408': [['l+p'], 9.559078358615913],
+ '409': [['p*r'], 175.8366160459118],
+ '41': [['l+r*p'], 175.6855921856946],
+ '410': [['l+r*p'], 111.71895120939709],
+ '411': [['p*r'], -106.0362721190285],
+ '412': [['l+r+p'], 180.92746850755825],
+ '413': [['l+r*p'], 166.82623170512875],
+ '414': [['p+r'], -20.34673593963402],
+ '415': [['l+r+p'], 217.52752760905773],
+ '416': [['l+r*p'], 136.71908639715699],
+ '417': [['l+r'], -78.61743662696118],
+ '418': [['l+r'], 196.39764821077037],
+ '419': [['p*r'], 216.30452165616737],
+ '42': [['p+r'], -5.58082209503765],
+ '420': [['p+r'], 35.17213945788993],
+ '421': [['l+r*p'], 165.5584662150498],
+ '422': [['p+r'], 131.2425159410703],
+ '423': [['p*r'], -107.01406161849005],
+ '424': [['l+r*p'], 160.39882992479195],
+ '425': [['p*r'], 178.21122004634353],
+ '426': [['p+r'], -12.088841886778486],
+ '427': [['p*r'], 222.45213722394163],
+ '428': [['p*r'], 171.41278103472058],
+ '429': [['l+r+p'], -151.61568615485496],
+ '43': [['p*r'], 228.78070946293428],
+ '430': [['l+r*p'], 202.0049831246178],
+ '431': [['l+r*p'], 225.87498902827235],
+ '432': [['l+r+p'], 15.671616448152268],
+ '433': [['p*r'], 176.98609358132163],
+ '434': [['p+r'], 141.91416001055646],
+ '435': [['l*r*p'], -198.65164397553693],
+ '436': [['p*r'], 175.1759099124975],
+ '437': [['l+r+p'], 163.46123396231016],
+ '438': [['p+r'], -8.971147429641071],
+ '439': [['p*r'], 138.29290124626348],
+ '44': [['l+r*p'], 111.17532036816591],
+ '440': [['l+r+p'], 133.87177095807505],
+ '441': [['l+r+p'], -163.90636323436175],
+ '442': [['l+r+p'], 178.63324501500705],
+ '443': [['l+r*p'], 179.12931778725192],
+ '444': [['p+r'], -13.160801928783098],
+ '445': [['p*r'], 158.78684318942487],
+ '446': [['p*r'], 128.30145377974773],
+ '447': [['p+r'], -158.3234010718293],
+ '448': [['p*r'], 174.4851069741233],
+ '449': [['l+r+p'], 154.43585904606675],
+ '45': [['p*r'], -155.96060147468953],
+ '450': [['l+p'], -31.101772691028238],
+ '451': [['l+r*p'], 183.77917718990975],
+ '452': [['p*r'], 140.32402957374677],
+ '453': [['p+r'], -115.61933462606412],
+ '454': [['p+r'], 153.3233027238961],
+ '455': [['l+r*p'], 175.12835651100158],
+ '456': [['l+r+p'], -7.328931383038363],
+ '457': [['l+r*p'], 163.7441133399598],
+ '458': [['l+r*p'], 194.8665870186851],
+ '459': [['l+r'], -89.07555209852339],
+ '46': [['l+r*p'], 169.71936676995836],
+ '460': [['l+r*p'], 188.0941011645392],
+ '461': [['l*r+p'], 197.91138969524408],
+ '462': [['l+p'], 10.876239374742703],
+ '463': [['l+r'], 184.28273153351842],
+ '464': [['p*r'], 167.6743396942016],
+ '465': [['l+r'], -79.74809064183667],
+ '466': [['p*r'], 208.51151828783216],
+ '467': [['l+r+p'], 209.8774018338982],
+ '468': [['l+r+p'], 66.94065536427865],
+ '469': [['p*r'], 188.13495376389562],
+ '47': [['l+r+p'], 189.83469151400874],
+ '470': [['p*r'], 121.2247720266732],
+ '471': [['l+r+p'], -110.32038216170807],
+ '472': [['p*r'], 175.79002595470686],
+ '473': [['l+r*p'], 169.36198534581766],
+ '474': [['l+r+p'], -25.498384758663594],
+ '475': [['l+r*p'], 154.07884458338174],
+ '476': [['p*r'], 127.20430993241625],
+ '477': [['l+r+p'], -111.50555987120909],
+ '478': [['p*r'], 166.7158181679369],
+ '479': [['l+r+p'], 182.11617790349638],
+ '48': [['l+r+p'], 41.36584711470178],
+ '480': [['l+r'], -24.045276896089973],
+ '481': [['l+r*p'], 179.73876294671837],
+ '482': [['l+r+p'], 146.77042479593356],
+ '483': [['p*r'], -104.9279642205913],
+ '484': [['p*r'], 171.7402441141919],
+ '485': [['p*r'], 179.0381338561847],
+ '486': [['l+r+p'], -16.18439666150237],
+ '487': [['l+r+p'], 181.4585362459909],
+ '488': [['l+r*p'], 145.55212325893322],
+ '489': [['l+r+p'], -129.33976547372296],
+ '49': [['l+r*p'], 152.75190582254132],
+ '490': [['l*r+p'], 200.67632226274208],
+ '491': [['p+r'], 162.59219815978892],
+ '492': [['p+r'], -23.206545606277075],
+ '493': [['p*r'], 200.30791648158004],
+ '494': [['p*r'], 140.61062595292958],
+ '495': [['l+r+p'], -154.10361574865823],
+ '496': [['l*r+p'], 221.69926360822512],
+ '497': [['p*r'], 202.318209026333],
+ '498': [['l+r+p'], 35.597110651348096],
+ '499': [['l+r*p'], 212.57075859471976],
+ '5': [['p*r'], 183.89411916267804],
+ '50': [['p*r'], 122.09231752943388],
+ '500': [['l+r*p'], 150.39208624828237],
+ '501': [['p*r'], -155.7890215958367],
+ '502': [['l+r+p'], 206.13259841677143],
+ '503': [['p*r'], 202.4782743515281],
+ '504': [['l+r'], 16.9299447729415],
+ '505': [['l+r*p'], 175.75785154838752],
+ '506': [['l+r*p'], 135.4043076472692],
+ '507': [['l+r'], -131.55203854502565],
+ '508': [['l*r+p'], 169.0181813366808],
+ '509': [['l+r+p'], 185.4042254796446],
+ '51': [['p*r'], -75.29933113830835],
+ '510': [['l+r+p'], -32.34924207235753],
+ '511': [['l+r*p'], 166.95202239754613],
+ '512': [['p+r'], 107.38821692756875],
+ '513': [['p+r'], -116.50632421619079],
+ '514': [['p*r'], 170.45275423336943],
+ '515': [['l+r+p'], 156.8749489130328],
+ '516': [['p+r'], 3.187788706752496],
+ '517': [['l+r*p'], 162.87558017438917],
+ '518': [['l+r*p'], 140.94929442415452],
+ '519': [['p+r'], -125.42555723650793],
+ '52': [['l*r+p'], 224.50228304916467],
+ '520': [['p*r'], 170.21991904779065],
+ '521': [['l+r*p'], 164.57560723768918],
+ '522': [['p+r'], -31.806183503385732],
+ '523': [['l+r*p'], 149.5046540687516],
+ '524': [['l+r*p'], 137.37432435520256],
+ '525': [['p+r'], -120.3356529623793],
+ '526': [['l+r*p'], 175.37567539345343],
+ '527': [['p*r'], 130.68459453530733],
+ '528': [['l+r+p'], -3.825108822942788],
+ '529': [['p*r'], 190.41509296260648],
+ '53': [['p*r'], 215.97708947726935],
+ '530': [['l+r*p'], 131.72972549337308],
+ '531': [['r'], -148.15199291461818],
+ '532': [['p*r'], 181.0107638251915],
+ '533': [['p*r'], 172.66414652152812],
+ '534': [['l+r+p'], -59.016357645508265],
+ '535': [['l+r*p'], 173.59344066179483],
+ '536': [['p*r'], 183.274586062845],
+ '537': [['p*r'], -182.06834728512956],
+ '538': [['l+r+p'], 240.01803653019812],
+ '539': [['p*r'], 215.4776366403394],
+ '54': [['l+r+p'], 24.36465931378025],
+ '540': [['p+r'], 34.092680579947384],
+ '541': [['p*r'], 164.97864294114012],
+ '542': [['p+r'], 219.90697750236708],
+ '543': [['l+r+p'], -146.77613193864872],
+ '544': [['l+r*p'], 192.9427055183463],
+ '545': [['p*r'], 210.6165318521652],
+ '546': [['l+r+p'], 11.58123067853958],
+ '547': [['p*r'], 153.2090911706048],
+ '548': [['p*r'], 129.63179559775577],
+ '549': [['l+r+p'], -152.63790904088324],
+ '55': [['p*r'], 157.31926479085564],
+ '550': [['l+r*p'], 180.5272455020169],
+ '551': [['l+r*p'], 169.56733361518621],
+ '552': [['p+r'], -14.632312544506139],
+ '553': [['l+r*p'], 159.71654395435746],
+ '554': [['l+r+p'], 115.05708457988396],
+ '555': [['p+r'], -174.8393576206773],
+ '556': [['l+r*p'], 176.64954912059002],
+ '557': [['p*r'], 180.85342907861116],
+ '558': [['l+r+p'], -25.285766954630322],
+ '559': [['l+r*p'], 176.12918460642635],
+ '56': [['p*r'], 121.29290257904937],
+ '560': [['l+r+p'], 159.2147928134382],
+ '561': [['p+r'], -126.10794715662709],
+ '562': [['p*r'], 170.76265374321966],
+ '563': [['l+r+p'], 176.43420594149495],
+ '564': [['l+r'], -29.296788653679613],
+ '565': [['p*r'], 123.36772075611334],
+ '566': [['l+r'], 117.15987702715341],
+ '567': [['p*r'], -107.70983414029226],
+ '568': [['p*r'], 136.37269325023857],
+ '569': [['p*r'], 173.61259889145683],
+ '57': [['p*r'], -95.16906047494899],
+ '570': [['p+r'], -16.937966846629166],
+ '571': [['p*r'], 173.6075792561152],
+ '572': [['l+r*p'], 137.27448428817883],
+ '573': [['l+r+p'], -174.03800623696222],
+ '574': [['p*r'], 160.78093112158953],
+ '575': [['l+r*p'], 150.92574760057786],
+ '576': [['l+r+p'], -63.25212935457927],
+ '577': [['p*r'], 153.60792000584433],
+ '578': [['p*r'], 191.11954934591756],
+ '579': [['l+r+p'], -156.65014191881966],
+ '58': [['l+r+p'], 186.16156880628557],
+ '580': [['l+r+p'], 214.74553550054642],
+ '581': [['l+r*p'], 189.83783087899212],
+ '582': [['l+r+p'], 42.47738033409387],
+ '583': [['p*r'], 212.25408513014443],
+ '584': [['l+r*p'], 197.9430031685411],
+ '585': [['l+r'], -91.86129328432432],
+ '586': [['l+r+p'], 227.13541564957958],
+ '587': [['l+r+p'], 194.23882714103857],
+ '588': [['p+r'], 22.697408566825025],
+ '589': [['l+r*p'], 182.4779992302812],
+ '59': [['l+r*p'], 157.99422133820116],
+ '590': [['l*r+p'], 145.56254419755825],
+ '591': [['l+p'], -204.43213689397498],
+ '592': [['l+r*p'], 175.8852470532109],
+ '593': [['l+r+p'], 184.79744189369234],
+ '594': [['l+r'], -28.593134663456272],
+ '595': [['l+r*p'], 138.90762567157552],
+ '596': [['p*r'], 110.67461720578916],
+ '597': [['l+r+p'], -107.20942332738613],
+ '598': [['l+r*p'], 183.48146180447128],
+ '599': [['l+r*p'], 160.9614714278141],
+ '6': [['p+r'], -18.647436135269224],
+ '60': [['l+r+p'], -20.948036865917388],
+ '600': [['p+r'], -8.136035024878183],
+ '601': [['p*r'], 182.9483029968572],
+ '602': [['p*r'], 115.30437885510842],
+ '603': [['p*r'], -104.87302932065612],
+ '604': [['p*r'], 169.4838028610339],
+ '605': [['p*r'], 174.3780085297257],
+ '606': [['l+r'], -31.233914401682288],
+ '607': [['l+r*p'], 230.53034060279285],
+ '608': [['p*r'], 106.75726260485091],
+ '609': [['l+r*p'], -145.17717171954453],
+ '61': [['l+r*p'], 168.5743345213899],
+ '610': [['l+r+p'], 158.77596119925076],
+ '611': [['l+r+p'], 229.13243772411562],
+ '612': [['l+r'], 9.448488233607026],
+ '613': [['p*r'], 182.2941523449464],
+ '614': [['l+r*p'], 111.17847701344928],
+ '615': [['p*r'], -189.95963526680023],
+ '616': [['p*r'], 174.1423938268968],
+ '617': [['l+r+p'], 187.069764832104],
+ '618': [['p+r'], -4.314549832308984],
+ '619': [['l+r*p'], 167.97554306997964],
+ '62': [['p*r'], 102.88940384653615],
+ '620': [['p*r'], 131.8131634102465],
+ '621': [['l+r+p'], -185.7577094033555],
+ '622': [['l+r*p'], 158.68010175332319],
+ '623': [['p*r'], 170.32936696714575],
+ '624': [['l+r'], -23.009628838278378],
+ '625': [['p*r'], 149.7381165005917],
+ '626': [['l+r*p'], 133.54141422477485],
+ '627': [['l+r+p'], -124.28660945416198],
+ '628': [['p*r'], 138.092525926976],
+ '629': [['l+r*p'], 169.56733361518621],
+ '63': [['l+r+p'], -113.87987198549922],
+ '630': [['p+r'], -9.765255771059245],
+ '631': [['l+r*p'], 171.11043604399268],
+ '632': [['p*r'], 132.3237034408181],
+ '633': [['p+r'], -114.9341962808512],
+ '634': [['l+r*p'], 178.5196846545094],
+ '635': [['p*r'], 173.89751160256415],
+ '636': [['l+r+p'], -8.512787663930297],
+ '637': [['l+r+p'], 155.61757977656978],
+ '638': [['l+r*p'], 112.62051463704653],
+ '639': [['r'], -163.78515736971806],
+ '64': [['l+r+p'], 127.81293542872471],
+ '640': [['p+r'], 216.68763025793066],
+ '641': [['l+r*p'], 175.71876149569925],
+ '642': [['r'], -26.999497551489874],
+ '643': [['l+r*p'], 190.83212107253675],
+ '644': [['l+r*p'], 136.79908204260943],
+ '645': [['p*r'], -108.41350034536862],
+ '646': [['l+r+p'], 178.1120358046571],
+ '647': [['l+r*p'], 169.15967078538145],
+ '648': [['l+r+p'], -35.31447421741316],
+ '649': [['p+r'], 175.05388827831226],
+ '65': [['l+r+p'], 166.78291914583204],
+ '650': [['p+r'], 144.50294056873736],
+ '651': [['p+r'], -123.71631166024025],
+ '652': [['p*r'], 177.80846362842357],
+ '653': [['p*r'], 173.25136316477844],
+ '654': [['p+r'], -9.808026342643437],
+ '655': [['p*r'], 214.19791851914064],
+ '656': [['l+r*p'], 173.41410389748032],
+ '657': [['p+r'], -156.8898289619863],
+ '658': [['l+r+p'], 215.42014664519235],
+ '659': [['l+r*p'], 197.46791791819206],
+ '66': [['l+r*p'], -46.656033957736646],
+ '660': [['l+r'], -40.49898735673797],
+ '661': [['l+r*p'], 173.22886383515157],
+ '662': [['p*r'], 110.4973218655947],
+ '663': [['l+r+p'], -113.36546504869936],
+ '664': [['p*r'], 150.4880162086055],
+ '665': [['p*r'], 173.87376317253393],
+ '666': [['l+r+p'], -4.8938196394244144],
+ '667': [['l+r*p'], 180.99409667124587],
+ '668': [['l+r*p'], 137.93137165476222],
+ '669': [['p+r'], -160.74242563385263],
+ '67': [['p*r'], 180.3378209736518],
+ '670': [['p*r'], 150.42120514079042],
+ '671': [['p*r'], 165.88142902990117],
+ '672': [['r'], -31.997077963905106],
+ '673': [['l+r*p'], 222.70920222386272],
+ '674': [['l+r*p'], 129.71641057858167],
+ '675': [['p*r'], -160.67016812901014],
+ '676': [['p'], 195.35525719244072],
+ '677': [['p+r'], 242.67180877374324],
+ '678': [['p+r'], 20.56875629293782],
+ '679': [['p*r'], 214.55667381877487],
+ '68': [['l+r*p'], 125.44943906412573],
+ '680': [['p+r'], 158.21173615287825],
+ '681': [['l+r*p'], -201.09291670551255],
+ '682': [['l+r+p'], 223.30398354431583],
+ '683': [['p*r'], 209.58062250681954],
+ '684': [['p+r'], 20.269795455023946],
+ '685': [['p*r'], 140.21196860043898],
+ '686': [['l+r+p'], 115.64381518604978],
+ '687': [['r'], -192.5996161517864],
+ '688': [['p+r'], 174.73214187244125],
+ '689': [['l+r*p'], 170.87281489821962],
+ '69': [['l*r+p'], -328.5966537418555],
+ '690': [['l+r+p'], -6.65812212398157],
+ '691': [['l+r+p'], 145.2132579466051],
+ '692': [['l*r+p'], 144.60140219509185],
+ '693': [['p*r'], -187.80306131137712],
+ '694': [['p*r'], 158.73684149369325],
+ '695': [['p*r'], 185.78611448003423],
+ '696': [['l+r+p'], -3.836679145449054],
+ '697': [['p*r'], 181.38915317264858],
+ '698': [['p+r'], 133.5458810495507],
+ '699': [['p+r'], -168.16871405318435],
+ '7': [['p*r'], 155.0089379033704],
+ '70': [['p*r'], 158.95923870576888],
+ '700': [['l+r*p'], 179.2325512823284],
+ '701': [['l+r*p'], 175.01099261393105],
+ '702': [['l+r'], -34.530666091086395],
+ '703': [['l+r*p'], 182.43447217660713],
+ '704': [['p*r'], 142.1564746051379],
+ '705': [['p+r'], -121.92138686775758],
+ '706': [['p+r'], 179.00470623532922],
+ '707': [['l+r+p'], 179.25585655144778],
+ '708': [['l+r+p'], -5.87868593443536],
+ '709': [['l+r*p'], 207.29156076176582],
+ '71': [['p+r'], 163.64578680656493],
+ '710': [['l+r+p'], 123.46350469388102],
+ '711': [['p+r'], -67.57486892840905],
+ '712': [['l+r*p'], 203.79895620860242],
+ '713': [['l+r'], 200.15016430248707],
+ '714': [['l+r+p'], 36.50716111190128],
+ '72': [['l+r'], -77.5420427941036],
+ '73': [['l+r*p'], 158.778678026779],
+ '74': [['l+r*p'], 117.25003552880693],
+ '75': [['p+r'], -115.35859999981894],
+ '76': [['l+r*p'], 163.9545493222094],
+ '77': [['l+r+p'], 171.2679608807777],
+ '78': [['p+r'], -24.894085673847883],
+ '79': [['l+r*p'], 160.26650529902886],
+ '8': [['l+r+p'], 136.71711289632756],
+ '80': [['p*r'], 122.4912132401064],
+ '81': [['l+r+p'], -243.0343282506765],
+ '82': [['l+r*p'], 176.7276756608765],
+ '83': [['p*r'], 174.47282515221838],
+ '84': [['p+r'], -10.994732406387637],
+ '85': [['l+r*p'], 179.2410481792888],
+ '86': [['p*r'], 117.28981006328249],
+ '87': [['p+r'], -108.40579739534398],
+ '88': [['p+r'], 179.93146257411718],
+ '89': [['p*r'], 175.62123085869882],
+ '9': [['l+r+p'], -169.6646316948787],
+ '90': [['l+r'], -32.40438759673816],
+ '91': [['l+r*p'], 143.6754981804361],
+ '92': [['p+r'], 109.13876416383428],
+ '93': [['p+r'], -163.18019171251336],
+ '94': [['p*r'], 142.59765331885907],
+ '95': [['l+r*p'], 144.74741247552876],
+ '96': [['p+r'], -6.10800984193763],
+ '97': [['l+r*p'], 204.96964147259393],
+ '98': [['l+r*p'], 189.10396604800863],
+ '99': [['p*r'], -74.91919276558556]}
+
+​
