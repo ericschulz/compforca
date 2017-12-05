@@ -1,0 +1,85 @@
+scenario,kernel,lml
+Temperature,l,-1044.42056534
+Temperature,p,-905.189312867
+Temperature,r,357.92124651
+Temperature,l+r,-88.4135499509
+Temperature,l+p,-904.428946972
+Temperature,p+r,408.218343133
+Temperature,l*r,-410.942804998
+Temperature,l*p,-537.713792866
+Temperature,p*r,423.889049111
+Temperature,l+r+p,422.110379985
+Temperature,l+r*p,226.190593619
+Temperature,l*r+p,-526.954055413
+Temperature,l*p+r,386.173683859
+Temperature,l*r*p,-403.720547526
+Rain,l,-1409.15640587
+Rain,p,-1187.69043084
+Rain,r,-276.830349354
+Rain,l+r,-273.605468458
+Rain,l+p,-1162.23846197
+Rain,p+r,-191.568400801
+Rain,l*r,-1076.69505786
+Rain,l*p,-1214.39701371
+Rain,p*r,-215.978457895
+Rain,l+r+p,-1151.6204535
+Rain,l+r*p,-188.085524333
+Rain,l*r+p,-1167.04017791
+Rain,l*p+r,-309.1310509
+Rain,l*r*p,-1065.44979719
+Sales,l,-1523.10439576
+Sales,p,-1079.34101856
+Sales,r,-212.507268573
+Sales,l+r,-158.815817279
+Sales,l+p,-1051.41186239
+Sales,p+r,-53.8087448088
+Sales,l*r,-1129.74900501
+Sales,l*p,-1489.35883063
+Sales,p*r,-97.9292839989
+Sales,l+r+p,-1046.57994382
+Sales,l+r*p,-60.0492631289
+Sales,l*r+p,-1110.02837062
+Sales,l*p+r,-168171.80759
+Sales,l*r*p,-1123.86743101
+Salary,l,-2520.68381627
+Salary,p,-2060.83766455
+Salary,r,-885.321235891
+Salary,l+r,-1601.11320256
+Salary,l+p,-756808855.461
+Salary,p+r,-885.913971241
+Salary,l*r,-409075630.786
+Salary,l*p,-3723.76834207
+Salary,p*r,-26391.0237705
+Salary,l+r+p,-1704.29766373
+Salary,l+r*p,-1094.09794043
+Salary,l*r+p,-3352.6754549
+Salary,l*p+r,-143657.784732
+Salary,l*r*p,-409075630.786
+Gym members,l,-1308.67459211
+Gym members,p,-1010.80813498
+Gym members,r,-833.764289236
+Gym members,l+r,90.5391765597
+Gym members,l+p,-874.505307655
+Gym members,p+r,-1012.47592054
+Gym members,l*r,-983.207128124
+Gym members,l*p,-1305.42507011
+Gym members,p*r,71.2205354722
+Gym members,l+r+p,-607.087137849
+Gym members,l+r*p,104.173505782
+Gym members,l*r+p,-775.247070253
+Gym members,l*p+r,-1305.42278208
+Gym members,l*r*p,-973.164283973
+FB Friends,l,-6017.37801528
+FB Friends,p,-4961.76178817
+FB Friends,r,3143.32335324
+FB Friends,l+r,205.573989519
+FB Friends,l+p,-3324.03819361
+FB Friends,p+r,-4636.42156993
+FB Friends,l*r,-13381.7781443
+FB Friends,l*p,-6017.37654964
+FB Friends,p*r,256.944866064
+FB Friends,l+r+p,3532.55614356
+FB Friends,l+r*p,264.725533183
+FB Friends,l*r+p,-4782.63403441
+FB Friends,l*p+r,3269.40979629
+FB Friends,l*r*p,-13381.7781443

@@ -1010,4 +1010,51 @@ def days_to_date( day ):
 #plot_catmull_rom([[0,0],[10,10],[11,5],[20,20], [21, -10], [30, 30]])
 all_subjects = create_subjects()
 
-get_subject_pid('a013').get_response('rain', 1).get_catmull_rom()
+#get_subject_pid('a013').get_response('rain', 1).get_catmull_rom()
+
+# Returns the Catmull interpolation. Only to be used when the
+# number of items is three or more
+def reduce_spline( spline ):
+    # Get the 'x' value for the first and last point of the spline
+    firstX = int(round(spline[0][0]))
+    lastX = int(round(spline[len(spline)-1][0]))
+
+    searchIndex = 0
+
+    filteredPoints = []
+
+    # For each of the x values that need to be filled with a value...
+    for x in range(firstX, lastX + 1):
+        # Search for the point that it closest to it, starting with the search
+        # at the searchIndex
+        searchIndex = find_closest_x(spline, x, searchIndex)
+
+        # Add the found point to the filteredPoints list
+        filteredPoints.append( [x, spline[searchIndex][1]] )
+
+    return filteredPoints
+
+# Returns the index of the point which has the closest X value to the targetValue
+# The search is started in startSearchOn
+def find_closest_x( points, targetValue, startSearchOn=0):
+    minimumDistance = 999999999 # Very large number
+    indexOfMinimum = -1 # Index where the minimum distance to the target is found
+
+    # Search on the entire length of the
+    for i in range(startSearchOn, len(points)):
+        distance = abs(targetValue - points[i][0])
+
+        # If the new distance is smaller than the current minimum distance, save it
+        if distance <= minimumDistance:
+            minimumDistance = distance
+            indexOfMinimum = i
+        else:
+            # Given that the distance is described by a convex function,
+            # once the distance increases, then it means the minimum has
+            # been passed
+
+            if distance - minimumDistance > 10:
+                break
+
+    # Return the index where the minimum distance was found
+    return indexOfMinimum
