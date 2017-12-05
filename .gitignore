@@ -22,3 +22,17 @@ Data analysis/.ipynb_checkpoints/2- Paper-work-checkpoint.ipynb
 Data analysis/.ipynb_checkpoints/3- New compositional analysis-checkpoint.ipynb
 Data analysis/.ipynb_checkpoints/2- Paper work (R)-checkpoint.ipynb
 Data analysis/.ipynb_checkpoints/1- Compositional Analysis - GPflow - Full Bayesian-checkpoint.ipynb
+Data analysis/output/cross-validation-prior/results_prior_0_lmls.csv
+Data analysis/output/cross-validation-prior/results_prior_1_lmls.csv
+Data analysis/output/cross-validation-prior/results_prior_2_lmls.csv
+Data analysis/output/cross-validation-prior/results_prior_5_lmls.csv
+Data analysis/output/cross-validation-prior/results_prior_4_lmls.csv
+Data analysis/output/cross-validation-prior/results_prior_0_predictions.csv
+Data analysis/output/cross-validation-prior/results_prior_3_lmls.csv
+Data analysis/output/cross-validation-prior/results_prior_1_predictions.csv
+Data analysis/output/cross-validation-prior/results_prior_2_predictions.csv
+Data analysis/output/cross-validation-prior/results_prior_4_predictions.csv
+Data analysis/output/full-bayesian-posterior/results_posterior_test_lmls.csv
+Data analysis/output/cross-validation-prior/results_prior_3_predictions.csv
+Data analysis/output/cross-validation-prior/results_prior_5_predictions.csv
+Data analysis/output/full-bayesian-posterior/results_posterior_test_predictions.csv
