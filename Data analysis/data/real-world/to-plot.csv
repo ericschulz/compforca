@@ -41,20 +41,20 @@ Sales,l+r*p,-60.0492631289
 Sales,l*r+p,-1110.02837062
 Sales,l*p+r,-168171.80759
 Sales,l*r*p,-1123.86743101
-Salary,l,-2520.68381627
-Salary,p,-2060.83766455
-Salary,r,-885.321235891
-Salary,l+r,-1601.11320256
-Salary,l+p,-756808855.461
-Salary,p+r,-885.913971241
-Salary,l*r,-409075630.786
-Salary,l*p,-3723.76834207
-Salary,p*r,-26391.0237705
-Salary,l+r+p,-1704.29766373
-Salary,l+r*p,-1094.09794043
-Salary,l*r+p,-3352.6754549
-Salary,l*p+r,-143657.784732
-Salary,l*r*p,-409075630.786
+Salary,l,-3393.7485747
+Salary,p,-2767.55003847
+Salary,r,-2137.7900291
+Salary,l+r,-2076.03327872
+Salary,l+p,-2214.09770783
+Salary,p+r,-493.963851237
+Salary,l*r,-409124692.591
+Salary,l*p,-3543.21130513
+Salary,p*r,-3543.94426368
+Salary,l+r+p,-1713.75566843
+Salary,l+r*p,-7561.56371725
+Salary,l*r+p,-4528.86154271
+Salary,l*p+r,-27681127944.6
+Salary,l*r*p,-409124692.591
 Gym members,l,-1308.67459211
 Gym members,p,-1010.80813498
 Gym members,r,-833.764289236
