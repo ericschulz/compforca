@@ -13,20 +13,20 @@ Temperature,l+r*p,226.190593619
 Temperature,l*r+p,-526.954055413
 Temperature,l*p+r,386.173683859
 Temperature,l*r*p,-403.720547526
-Rain,l,-1409.15640587
-Rain,p,-1187.69043084
-Rain,r,-276.830349354
-Rain,l+r,-273.605468458
-Rain,l+p,-1162.23846197
-Rain,p+r,-191.568400801
-Rain,l*r,-1076.69505786
-Rain,l*p,-1214.39701371
-Rain,p*r,-215.978457895
-Rain,l+r+p,-1151.6204535
-Rain,l+r*p,-188.085524333
-Rain,l*r+p,-1167.04017791
-Rain,l*p+r,-309.1310509
-Rain,l*r*p,-1065.44979719
+Rain,l,-1351.23378163
+Rain,p,-1033.05587478
+Rain,r,373.655950875
+Rain,l+r,392.752874359
+Rain,l+p,-1002.87365489
+Rain,p+r,429.407870941
+Rain,l*r,-910.166260461
+Rain,l*p,-1351.23625379
+Rain,p*r,497.346899391
+Rain,l+r+p,426.720265675
+Rain,l+r*p,504.951217854
+Rain,l*r+p,-992.933556864
+Rain,l*p+r,-1182.31511841
+Rain,l*r*p,-909.605379205
 Sales,l,-1523.10439576
 Sales,p,-1079.34101856
 Sales,r,-212.507268573
@@ -69,17 +69,17 @@ Gym members,l+r*p,104.173505782
 Gym members,l*r+p,-775.247070253
 Gym members,l*p+r,-1305.42278208
 Gym members,l*r*p,-973.164283973
-FB Friends,l,-1645.47376071
-FB Friends,p,-1111.88746756
-FB Friends,r,957.105307201
-FB Friends,l+r,830.5093415
-FB Friends,l+p,-136.051749615
-FB Friends,p+r,989.731644858
-FB Friends,l*r,-1257.3794275
-FB Friends,l*p,-1481.80489116
-FB Friends,p*r,76.1518828963
-FB Friends,l+r+p,-375.755706133
-FB Friends,l+r*p,76.2150795298
-FB Friends,l*r+p,69.5802845429
-FB Friends,l*p+r,953.76276416
-FB Friends,l*r*p,-1257.18795201
+FB Friends,l,-2018.88623406
+FB Friends,p,-1695.90213222
+FB Friends,r,309.493070462
+FB Friends,l+r,-45.9909123062
+FB Friends,l+p,-1362.86786687
+FB Friends,p+r,-35.2655379796
+FB Friends,l*r,-68345.844254
+FB Friends,l*p,-2284.34405591
+FB Friends,p*r,-363.091821901
+FB Friends,l+r+p,-23.8307378078
+FB Friends,l+r*p,475.172938798
+FB Friends,l*r+p,-26.6670719861
+FB Friends,l*p+r,-1936.88787842
+FB Friends,l*r*p,-1607.9693981
