@@ -35,3 +35,5 @@ Data analysis/output/cross-validation-prior/results_prior_4_predictions.csv
 Data analysis/output/cross-validation-prior/results_prior_3_predictions.csv
 Data analysis/output/cross-validation-prior/results_prior_5_predictions.csv
 Data analysis/output/full-bayesian-posterior/results_posterior_test_predictions.csv
+Data analysis/output/minus-mean-treatment/results_prior_predictions.csv
+Data analysis/output/minus-mean-treatment/results_posterior_predictions.csv
