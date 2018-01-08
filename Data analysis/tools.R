@@ -8,6 +8,8 @@ library(tidyverse)
 library(DT) # dependency
 library(ggthemes) # dependency
 
+library('DescTools')
+
 #library(plotly)
 
 
@@ -62,3 +64,87 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     }
   }
 }
+
+
+# Misc functions
+scenarios_order <- function (scenarios) {
+    scenarios[scenarios=='Temperature'] = 1
+    scenarios[scenarios=='Rain']        = 2
+    scenarios[scenarios=='Sales']       = 3
+    scenarios[scenarios=='Gym members'] = 4
+    scenarios[scenarios=='Salary']      = 5
+    scenarios[scenarios=='FB friends']  = 6
+
+    return(scenarios)
+}
+
+scenarios <- c("temperature", "rain", "sales", "gym_memberships", "wage", "facebook_friends")
+readable_scenarios <- c("Temperature", "Rain", "Sales", "Gym members", "Salary", "FB Friends")
+subconditions = c(1, 2, 3)
+condition_names = c("Prior", "Posterior-Positive", "Posterior-Stable", "Posterior-Negative")
+
+
+################################################################################
+##############################   DATA   ########################################
+################################################################################
+
+# Import data
+data <- suppressWarnings(read_csv("data/catmull-rom-dataset.csv"))
+
+# Small modification
+data$noiseIndex <- data$noiseIndex+1
+
+# All participants
+participants <- data %>%
+                select(userId, age, gender) %>%
+                unique
+
+data <- data %>% filter(userId != 'a106',userId != 'a118')
+
+# To tidy data
+tidy_data <- data %>%
+    gather(day, value, starts_with("day"))
+
+# Transform strings to numbers
+tidy_data <- tidy_data %>%
+    mutate(day = as.numeric(gsub("day", "", day)),
+           value = as.numeric(value))
+
+# Changes values to make them readable
+tidy_data$subcondition_name <- mapvalues(tidy_data$subcondition,
+                                  from = subconditions,
+                                  to   = condition_names[2:4])
+
+tidy_data$condition_name <- ifelse(tidy_data$stage==1,
+                                   condition_names[1],
+                                   "")
+
+tidy_data$condition_name <- ifelse(tidy_data$stage == 2,
+                                   tidy_data$subcondition_name,
+                                   tidy_data$condition_name)
+
+### Preparing the tidy data for analysis: `dat`
+dat <- data.frame(
+                   id        = tidy_data$userId,
+                   day       = tidy_data$day, #x
+                   value     = tidy_data$value, #y
+                   condition = tidy_data$condition_name,
+                   scenario  = tidy_data$scenario,
+                   noise     = tidy_data$noiseIndex
+                )
+
+# Change the readable names of the variables
+dat$scenario <- mapvalues( dat$scenario,
+                          from = scenarios,
+                          to = readable_scenarios)
+
+
+# Order on the plot
+dat$condition <- factor( dat$condition,
+                        levels = condition_names)
+
+dat$scenario <- factor( dat$scenario,
+                       levels = readable_scenarios)
+
+# Subset the analysis of data
+dat <- subset(dat, day > 30 & day < 365*4-30)

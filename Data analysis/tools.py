@@ -254,8 +254,8 @@ def normalize(Y):
 # In[16]:
 
 def compute_gps(X, Y0, full_bayesian = False, prior_gps = []):
-    #Y = normalize(Y0)
-    Y = Y0
+    # Subtract the mean
+    Y = Y0 - np.mean(Y0)
 
     gps = {}
 
